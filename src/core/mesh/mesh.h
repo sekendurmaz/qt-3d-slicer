@@ -10,6 +10,8 @@ struct Mesh
 {
     std::vector<Triangle> triangles; // Modelin tüm yüzeyleri
     AABB bounds;                     // Modelin sınır kutusu
+
+    bool computeBounds() noexcept;   // true: bounds hesaplandı, false: triangles boş
 };
 
 #endif // MESH_H
