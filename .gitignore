@@ -1,0 +1,6 @@
+build/
+*.user
+*.autosave
+*.pro.user
+CMakeFiles/
+cmake-build-*/
