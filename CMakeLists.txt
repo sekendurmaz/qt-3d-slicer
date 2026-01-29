@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.19)
-project(MyQtApp LANGUAGES CXX)
+
+project(MyQtApp
+    VERSION 0.1.0
+    DESCRIPTION "Qt-based 3D slicer tooling"
+    LANGUAGES CXX
+)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

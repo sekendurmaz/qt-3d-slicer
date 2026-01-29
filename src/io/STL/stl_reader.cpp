@@ -1,4 +1,4 @@
-#include "stlreader.h"
+#include "stl_reader.h"
 #include <QFile>
 #include <QDataStream>
 #include <QTextStream>

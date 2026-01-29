@@ -2,6 +2,7 @@ add_library(ui_lib STATIC
     mainwindow.h
     mainwindow.cpp
     mainwindow.ui
+
 )
 
 target_link_libraries(ui_lib
