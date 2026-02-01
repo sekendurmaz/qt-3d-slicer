@@ -17,6 +17,16 @@ set(CMAKE_AUTOUIC ON)
 # Qt paketlerini bul
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Gui)
 
+
+#[[ Testing (opsiyonel)
+    
+    option(BUILD_TESTING "Build tests" ON)
+    if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+    endif()
+]]
+
 # src alt dizinini ekle
 add_subdirectory(src)
 

@@ -16,7 +16,7 @@
       Her üçgen: normal(12) + vertex1(12) + vertex2(12) + vertex3(12) + attribute(2) = 50 byte
 
 🧱 OBJ (Wavefront OBJ)
-   Aslında poligon tabanlıdır
+   Aslında poligon tabanlıdı
    Yüzler:
    Üçgen olabilir
    Dörtgen (quad) olabilir
