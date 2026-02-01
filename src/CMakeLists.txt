@@ -8,7 +8,6 @@ add_executable(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-        Qt6::Widgets
         ui_lib
 )
 

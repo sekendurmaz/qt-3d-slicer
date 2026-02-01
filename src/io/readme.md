@@ -13,7 +13,7 @@
       endfacet
 
 🧱 OBJ (Wavefront OBJ)
-   Aslında poligon tabanlıdır
+   Aslında poligon tabanlıdı
    Yüzler:
    Üçgen olabilir
    Dörtgen (quad) olabilir
