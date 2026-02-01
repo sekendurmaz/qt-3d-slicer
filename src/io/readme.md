@@ -3,7 +3,7 @@
    ASCII veya Binary olabilir
    Her yüz = 1 üçgen
    Normal + 3 vertex
-   
+   ASCII
       facet normal nx ny nz
         outer loop
           vertex x y z
@@ -11,6 +11,9 @@
           vertex x y z
         endloop
       endfacet
+   BINARY
+      [80 byte header] [4 byte triangle count] [her triangle 50 byte]
+      Her üçgen: normal(12) + vertex1(12) + vertex2(12) + vertex3(12) + attribute(2) = 50 byte
 
 🧱 OBJ (Wavefront OBJ)
    Aslında poligon tabanlıdır
