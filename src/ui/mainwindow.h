@@ -24,6 +24,6 @@ private slots:
 private:
     Ui::MainWindow *ui;
     STLReader m_stlReader;
-    STLMesh m_currentMesh;
+    Mesh m_currentMesh;
 };
 #endif // MAINWINDOW_H

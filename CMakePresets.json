@@ -1,0 +1,17 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "qt-6.10.1-mingw64",
+      "displayName": "Qt 6.10.1 (mingw_64) + MinGW-w64",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/qt-mingw64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "C:/mingw64/bin/gcc.exe",
+        "CMAKE_CXX_COMPILER": "C:/mingw64/bin/g++.exe",
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.10.1/mingw_64"
+      }
+    }
+  ]
+}

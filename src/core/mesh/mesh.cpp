@@ -27,9 +27,9 @@ bool Mesh::computeBounds() noexcept
 
     for (const Triangle& t : triangles)
     {
-        update(t.v1);
-        update(t.v2);
-        update(t.v3);
+        update(t.vertex1);
+        update(t.vertex2);
+        update(t.vertex3);
     }
 
     return true;

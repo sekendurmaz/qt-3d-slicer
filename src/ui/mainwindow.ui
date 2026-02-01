@@ -13,12 +13,15 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="layoutDirection">
+   <enum>Qt::LayoutDirection::RightToLeft</enum>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QPushButton" name="pushButton">
     <property name="geometry">
      <rect>
-      <x>100</x>
-      <y>160</y>
+      <x>70</x>
+      <y>120</y>
       <width>161</width>
       <height>41</height>
      </rect>
@@ -36,6 +39,9 @@
       <height>161</height>
      </rect>
     </property>
+    <property name="layoutDirection">
+     <enum>Qt::LayoutDirection::LeftToRight</enum>
+    </property>
     <property name="text">
      <string>STL dosyası seçilmedi</string>
     </property>
@@ -47,7 +53,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>26</height>
+     <height>33</height>
     </rect>
    </property>
   </widget>

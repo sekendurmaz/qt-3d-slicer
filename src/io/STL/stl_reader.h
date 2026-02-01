@@ -1,54 +1,24 @@
 #ifndef STLREADER_H
 #define STLREADER_H
 
-#include <QString>
-#include <QVector>
-#include <QVector3D>
-
-// Bir üçgen yapısı
-struct Triangle {
-    QVector3D normal;
-    QVector3D vertex1;
-    QVector3D vertex2;
-    QVector3D vertex3;
-};
-
-struct STLMesh {
-    QString name;
-    QVector<Triangle> triangles;
-
-    void clear() {
-        name.clear();
-        triangles.clear();
-    }
-
-    int triangleCount() const {
-        return triangles.size();
-    }
-};
+#include <string>
+#include "mesh/mesh.h"
 
 class STLReader
 {
 public:
-    STLReader();
+    STLReader() = default;
 
-    // STL dosyası okuma
-    bool readSTL(const QString& filePath, STLMesh& mesh);
+    bool readSTL(const std::string& filePath, Mesh& mesh);
 
-    // Hata mesajı
-    QString getLastError() const { return m_lastError; }
+    const std::string& getLastError() const noexcept { return m_lastError; }
 
 private:
-    // Binary STL okuma
-    bool readBinarySTL(const QString& filePath, STLMesh& mesh);
+    bool readBinarySTL(const std::string& filePath, Mesh& mesh);
+    bool readASCIISTL(const std::string& filePath, Mesh& mesh);
+    bool isBinarySTL(const std::string& filePath);
 
-    // ASCII STL okuma
-    bool readASCIISTL(const QString& filePath, STLMesh& mesh);
-
-    // Binary mi ASCII mi kontrol et
-    bool isBinarySTL(const QString& filePath);
-
-    QString m_lastError;
+    std::string m_lastError;
 };
 
 #endif // STLREADER_H

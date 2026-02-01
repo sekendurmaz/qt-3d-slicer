@@ -2,16 +2,29 @@
 #define MESH_H
 
 #include <vector>
-
+#include <string>
 #include "geometry/triangle.h"
 #include "geometry/aabb.h"
 
-struct Mesh
+class Mesh
 {
-    std::vector<Triangle> triangles; // Modelin tüm yüzeyleri
-    AABB bounds;                     // Modelin sınır kutusu
+public:
+    std::string name;
+    std::vector<Triangle> triangles;
+    AABB bounds{};
 
-    bool computeBounds() noexcept;   // true: bounds hesaplandı, false: triangles boş
+    void clear() noexcept
+    {
+        name.clear();
+        triangles.clear();
+    }
+
+    size_t triangleCount() const noexcept
+    {
+        return triangles.size();
+    }
+
+    bool computeBounds() noexcept;
 };
 
 #endif // MESH_H
