@@ -4,3 +4,6 @@ build/
 *.pro.user
 CMakeFiles/
 cmake-build-*/
+.cache/
+.vscode/
+
