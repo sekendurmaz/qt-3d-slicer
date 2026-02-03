@@ -1,7 +1,9 @@
-#include "mesh.h"
+#include "core/mesh/mesh.h" // ← core::mesh::Mesh tanımı
+#include <algorithm>        // std::min, std::max
+#include <cfloat>           // FLT_MAX  
 
-#include <algorithm>
-#include <cfloat>
+namespace core {
+namespace mesh {                        
 
 bool Mesh::computeBounds() noexcept
 {
@@ -14,7 +16,7 @@ bool Mesh::computeBounds() noexcept
     bounds.min = { FLT_MAX,  FLT_MAX,  FLT_MAX };
     bounds.max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 
-    auto update = [&](const Vec3& v)
+    auto update = [&](const geometry::Vec3& v)  // ← geometry:: eklendi
     {
         bounds.min.x = std::min(bounds.min.x, v.x);
         bounds.min.y = std::min(bounds.min.y, v.y);
@@ -25,7 +27,7 @@ bool Mesh::computeBounds() noexcept
         bounds.max.z = std::max(bounds.max.z, v.z);
     };
 
-    for (const Triangle& t : triangles)
+    for (const geometry::Triangle& t : triangles)  // ← geometry:: eklendi
     {
         update(t.vertex1);
         update(t.vertex2);
@@ -34,3 +36,6 @@ bool Mesh::computeBounds() noexcept
 
     return true;
 }
+
+} // namespace mesh
+} // namespace core

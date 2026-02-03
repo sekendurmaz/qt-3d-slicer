@@ -1,7 +1,9 @@
-#ifndef AABB_H
-#define AABB_H
+#pragma once
 
-#include "vec3.h"
+namespace core {
+namespace geometry {
+
+#include "core/geometry/vec3.h"
 
 struct AABB
 {
@@ -9,4 +11,5 @@ struct AABB
     Vec3 max;   // En büyük köşe
 };
 
-#endif // AABB_H
+} // namespace geometry
+} // namespace core

@@ -2,29 +2,45 @@
 "C:\Qt\6.10.1\mingw_64\bin\designer.exe" src\ui\mainwindow.ui 
 
 MyQtApp/
-├─ CMakeLists.txt
-├─ .gitignore
-├─ README.md
-├─ src/
-│  ├─ CMakeLists.txt
-│  ├─ main.cpp
-│  ├─ ui/
-│  │  ├─ CMakeLists.txt
-│  │  ├─ mainwindow.h
-│  │  ├─ mainwindow.cpp
-│  │  └─ mainwindow.ui
-│  ├─ io/
-│  │  ├─ CMakeLists.txt
-│  │  └─ stl/
-│  │     ├─ CMakeLists.txt
-│  │     ├─ stl_reader.h
-│  │     └─ stl_reader.cpp
-│  └─ core/
-│     ├─ CMakeLists.txt
-│     ├─ geometry/...
-│     └─ mesh/...
-└─ tests/
-   └─ CMakeLists.txt
+├── .git/
+├── .gitignore
+├── .qtcreator/
+├── .vscode/
+├── CMakeLists.txt
+├── CMakePresets.json
+├── README.md
+├── build/
+│   ├── Desktop_Qt_6_10_1_MinGW_64_bit-Debug/
+│   ├── qt-mingw64/
+│   └── src/
+├── cmake/
+└── src/
+    ├── CMakeLists.txt
+    ├── main.cpp
+    ├── core/
+    │   ├── CMakeLists.txt
+    │   ├── geometry/
+    │   └── mesh/
+    ├── io/
+    │   ├── CMakeLists.txt
+    │   ├── readme.md
+    │   ├── g_code/
+    │   ├── json_config/
+    │   └── models/
+    │       ├── CMakeLists.txt
+    │       ├── common/
+    │       │   └── CMakeLists.txt
+    │       ├── obj/
+    │       ├── stl/
+    │       │   ├── CMakeLists.txt
+    │       │   ├── stl_reader.cpp
+    │       │   └── stl_reader.h
+    │       └── 3mf/
+    └── ui/
+        ├── CMakeLists.txt
+        ├── mainwindow.cpp
+        ├── mainwindow.h
+        └── mainwindow.ui
 
 
 Geometry = en temel matematiksel yapı taşları

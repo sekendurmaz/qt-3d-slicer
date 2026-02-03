@@ -2,18 +2,20 @@
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
-#include "QDebug"
+#include <QDebug>
+
+// IO katmanını dahil et
+#include "io/models/common/ModelFactory.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
     connect(ui->pushButton, &QPushButton::clicked,
             this, &MainWindow::onPushButtonClicked);
     // Pencere başlığı
-    setWindowTitle("STL File Reader");
+    setWindowTitle("3D Model Reader");
 }
 
 MainWindow::~MainWindow()
@@ -23,12 +25,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::onPushButtonClicked()
 {
-    // Dosya seçme dialogu
+    // Dosya seçme dialogu - Tüm formatları destekle
     QString fileName = QFileDialog::getOpenFileName(
         this,
-        "STL Dosyası Seç",
+        "3D Model Dosyası Seç",
         "",
-        "STL Files (*.stl);;All Files (*)"
+        "3D Models (*.stl *.obj *.3mf);;STL Files (*.stl);;OBJ Files (*.obj);;3MF Files (*.3mf);;All Files (*)"
         );
 
     // Kullanıcı iptal ettiyse
@@ -38,35 +40,37 @@ void MainWindow::onPushButtonClicked()
 
     qDebug() << "Seçilen dosya:" << fileName;
 
-    // STL dosyasını oku
-    if (m_stlReader.readSTL(fileName.toStdString(), m_currentMesh)) {
-        // Başarılı
-        QString info = QString("✓ STL dosyası yüklendi!\n\n")
-                       + QString("Üçgen sayısı: %1\n").arg(m_currentMesh.triangleCount())
-                       + QString("Dosya: %1").arg(fileName);
+    // Model yükleme
+    try {
+        // ModelFactory ile dosyayı yükle
+        auto mesh = io::models::ModelFactory::loadModel(
+            fileName.toStdString()
+            );
 
-        ui->infoLabel->setText(info);
+        // Başarı mesajı
+        QString message = QString("Model başarıyla yüklendi!\n\n"
+                                  "Dosya: %1\n"
+                                  "Triangle sayısı: %2")
+                              .arg(fileName)
+                              .arg(mesh.triangleCount());
 
-        QMessageBox::information(this, "Başarılı",
-                                 QString("STL dosyası başarıyla yüklendi!\n\nÜçgen sayısı: %1")
-                                     .arg(m_currentMesh.triangleCount()));
+        QMessageBox::information(this, "Başarılı", message);
 
-        // Debug: İlk üçgenin bilgileri
-        if (m_currentMesh.triangleCount() > 0) {
-            const Triangle& tri = m_currentMesh.triangles[0];
+        qDebug() << "Mesh yüklendi:"
+                 << mesh.triangleCount() << "triangles";
 
-            qDebug() << "İlk üçgen:";
-            qDebug() << "  Normal:" << tri.normal.x << tri.normal.y << tri.normal.z;
-            qDebug() << "  Vertex1:" << tri.vertex1.x << tri.vertex1.y << tri.vertex1.z;
-            qDebug() << "  Vertex2:" << tri.vertex2.x << tri.vertex2.y << tri.vertex2.z;
-            qDebug() << "  Vertex3:" << tri.vertex3.x << tri.vertex3.y << tri.vertex3.z;
-        }
-    } else {
-        // Hata
-        QString error =
-            "✗ STL dosyası okunamadı!\n\n" +
-            QString::fromStdString(m_stlReader.getLastError());
-        ui->infoLabel->setText(error);
-        QMessageBox::critical(this, "Hata", error);
+        // TODO: Mesh'i render et veya işle
+        // displayMesh(mesh);
+
+    } catch (const std::exception& e) {
+        // Hata mesajı
+        QString errorMsg = QString("Model yüklenirken hata oluştu:\n\n%1")
+                               .arg(e.what());
+
+        QMessageBox::critical(this, "Hata", errorMsg);
+
+        qDebug() << "Hata:" << e.what();
     }
 }
+
+

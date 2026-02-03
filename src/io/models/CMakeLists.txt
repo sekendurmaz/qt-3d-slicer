@@ -1,24 +1,21 @@
-# Ortak bağımlılıklar (tüm model reader'ları core'u görsün)
-add_library(model_readers_deps INTERFACE)
-target_link_libraries(model_readers_deps
-    INTERFACE
-        core_lib
-)
+# Model IO Module
+# Desteklenen formatlar: STL, OBJ, 3MF
 
-# Model okuyucuları
-# add_subdirectory(3mf)
-# add_subdirectory(obj)
+# Alt modülleri ekle
+add_subdirectory(common)
 add_subdirectory(stl)
+add_subdirectory(obj)
+add_subdirectory(3mf)
 
-# models_lib - tüm model reader'ları toplar
-add_library(models_lib INTERFACE)
+# Birleştirici interface library (opsiyonel, kolaylık için)
+add_library(model_io INTERFACE)
 
-# Toplayıcı / facade target (uygulama sadece bunu linkler)
-target_link_libraries(models_lib 
-    INTERFACE 
-        stl_io_lib
-        # obj_io_lib
-        # 3mf_io_lib
+target_link_libraries(model_io
+    INTERFACE
+        model_io_common
+        model_io_stl
+        model_io_obj
+        model_io_3mf
 )
 
 

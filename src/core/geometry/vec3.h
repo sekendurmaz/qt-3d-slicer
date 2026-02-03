@@ -1,5 +1,7 @@
-#ifndef VEC3_H
-#define VEC3_H
+#pragma once
+
+namespace core {
+namespace geometry {
 
 struct Vec3
 {
@@ -13,4 +15,5 @@ struct Vec3
         : x(x_), y(y_), z(z_) {}
 };
 
-#endif // VEC3_H
+} // namespace geometry
+} // namespace core

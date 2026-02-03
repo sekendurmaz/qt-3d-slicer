@@ -1,14 +1,19 @@
-add_library(stl_io_lib STATIC
-    stl_reader.h
-    stl_reader.cpp
+add_library(model_io_stl STATIC
+    StlReader.cpp
 )
 
-target_include_directories(stl_io_lib
+# Include paths
+target_include_directories(model_io_stl
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/src     
 )
 
-target_link_libraries(stl_io_lib
+# Dependencies
+target_link_libraries(model_io_stl
     PUBLIC
-        model_readers_deps
+        model_io_common  # IModelReader interface
+        core_lib         # Mesh, Triangle, Vec3
 )
+
+# C++17
+target_compile_features(model_io_stl PUBLIC cxx_std_17)

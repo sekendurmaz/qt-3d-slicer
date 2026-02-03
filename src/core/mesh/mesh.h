@@ -1,31 +1,61 @@
-#ifndef MESH_H
-#define MESH_H
+#pragma once
 
 #include <vector>
 #include <string>
-#include "geometry/triangle.h"
-#include "geometry/aabb.h"
+#include "core/geometry/triangle.h"
+#include "core/geometry/aabb.h"
+
+namespace core {
+namespace mesh {
 
 class Mesh
 {
 public:
     std::string name;
-    std::vector<Triangle> triangles;
-    AABB bounds{};
+    std::vector<geometry::Triangle> triangles; // List of triangles in the mesh
+    geometry::AABB bounds{};    // Axis-aligned bounding box (AABB)
 
-    void clear() noexcept
+    void clear() noexcept       // Resets the mesh to an empty state (Mesh'i temizle)
     {
-        name.clear();
-        triangles.clear();
+        name.clear();           // Clear the name
+        triangles.clear();   // Clear the triangle list
+        //bounds = geometry::AABB{}; // Reset bounds to default (empty)
     }
 
-    size_t triangleCount() const noexcept
+      // Triangle ekle (IO katmanı için KRITIK!)
+    void addTriangle(const geometry::Triangle& triangle)
+    {
+        triangles.push_back(triangle);
+    }
+
+    // Overload: 3 vertex + normal ile triangle ekle
+    void addTriangle(const geometry::Vec3& v1, 
+                    const geometry::Vec3& v2, 
+                    const geometry::Vec3& v3,
+                    const geometry::Vec3& normal = {0.0f, 0.0f, 0.0f})
+    {
+        geometry::Triangle tri;
+        tri.vertex1 = v1;
+        tri.vertex2 = v2;
+        tri.vertex3 = v3;
+        tri.normal = normal;
+        triangles.push_back(tri);
+    }
+
+    size_t triangleCount() const noexcept // Triangle sayısı
     {
         return triangles.size();
     }
 
-    bool computeBounds() noexcept;
+    // Mesh boş mu?
+    bool isEmpty() const noexcept
+    {
+        return triangles.empty();
+    }
+
+    bool computeBounds() noexcept;  // Mesh'in AABB'sini hesapla
 };
 
-#endif // MESH_H
+} // namespace mesh
+} // namespace core
 

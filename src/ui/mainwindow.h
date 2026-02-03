@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "stl_reader.h"
+
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -23,7 +23,6 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    STLReader m_stlReader;
-    Mesh m_currentMesh;
+    
 };
 #endif // MAINWINDOW_H
