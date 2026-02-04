@@ -2,6 +2,7 @@
 add_subdirectory(core)
 add_subdirectory(io)
 add_subdirectory(ui)
+add_subdirectory(rendering)  # ← YENİ!
 
 # Main executable
 add_executable(${PROJECT_NAME}
@@ -16,6 +17,7 @@ target_link_libraries(${PROJECT_NAME}
         core_lib
         Qt6::Core        # ← Core ekle
         Qt6::Widgets
+        rendering_lib    # ← YENİ!
 )
 
 # Windows için console'u kapat (opsiyonel)
