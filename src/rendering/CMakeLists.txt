@@ -1,0 +1,22 @@
+# Rendering library
+add_library(rendering_lib STATIC
+    Camera.cpp
+    MeshRenderer.cpp
+)
+
+target_link_libraries(rendering_lib
+    PUBLIC
+        core_lib
+        Qt6::Core
+        Qt6::Widgets
+        Qt6::Gui
+        Qt6::OpenGL
+        Qt6::OpenGLWidgets
+)
+
+target_include_directories(rendering_lib
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_compile_features(rendering_lib PUBLIC cxx_std_17)
