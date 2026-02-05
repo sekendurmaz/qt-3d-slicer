@@ -1,7 +1,7 @@
 add_library(ui_lib STATIC
     mainwindow.h
     mainwindow.cpp
-    mainwindow.ui
+
 
 )
 
@@ -10,7 +10,10 @@ target_link_libraries(ui_lib
         Qt6::Core
         Qt6::Widgets
         Qt6::Gui
-        io_lib          # ui, io'ya bağımlıdır
+        Qt6::OpenGL          # ← OpenGL ekle
+        Qt6::OpenGLWidgets   # ← OpenGLWidgets ekle
+        io_lib
+        rendering_lib
 )
 
 target_include_directories(ui_lib

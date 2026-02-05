@@ -12,6 +12,7 @@ target_link_libraries(rendering_lib
         Qt6::Gui
         Qt6::OpenGL
         Qt6::OpenGLWidgets
+        opengl32        # ← EKLE! (Windows OpenGL library)
 )
 
 target_include_directories(rendering_lib

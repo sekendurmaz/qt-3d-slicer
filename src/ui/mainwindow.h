@@ -1,28 +1,37 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
+#include "core/mesh/mesh.h"
 
-
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
+// Forward declarations
+namespace rendering {
+class MeshRenderer;
 }
-QT_END_NAMESPACE
+
+class QPushButton;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
-    void onPushButtonClicked();
+    void onLoadModel();
+    void onWireframe();
+    void onSolid();
+    void onResetView();
 
 private:
-    Ui::MainWindow *ui;
-    
+    // UI components (no Designer!)
+    rendering::MeshRenderer* meshRenderer_;
+    QPushButton* btnLoad_;
+    QPushButton* btnWireframe_;
+    QPushButton* btnSolid_;
+    QPushButton* btnReset_;
+
+    // Current mesh
+    core::mesh::Mesh currentMesh_;
 };
-#endif // MAINWINDOW_H
