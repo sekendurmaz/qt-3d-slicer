@@ -3,6 +3,9 @@
 #include "io/models/common/ModelFactory.h"
 #include "core/mesh/MeshValidator.h"
 #include "core/mesh/MeshAnalyzer.h"
+#include "core/mesh/NormalProcessor.h"
+#include "core/mesh/MeshRepairer.h"
+#include "core/slicing/Slicer.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -11,6 +14,8 @@
 #include <QMessageBox>
 #include <QStatusBar>
 #include <QFileInfo>
+#include <QLabel>
+#include "QSlider"
 #include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -34,7 +39,10 @@ MainWindow::MainWindow(QWidget *parent)
     meshRenderer_->setMinimumSize(800, 600);
     mainLayout->addWidget(meshRenderer_, 1); // stretch = 1
 
-    // Button layout (horizontal)
+    /* =========================== BUTTON LAYOUTS ===========================*/
+
+    // First row: Main controls
+
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->setSpacing(20);
 
@@ -57,6 +65,85 @@ MainWindow::MainWindow(QWidget *parent)
 
     mainLayout->addLayout(buttonLayout);
 
+    // Second row: Normal Processing + Repair
+
+    QHBoxLayout* buttonLayout2 = new QHBoxLayout();
+    buttonLayout2->setSpacing(5);
+
+    btnRecalcNormals_ = new QPushButton("Recalculate Normals", this);
+    btnSmoothNormals_ = new QPushButton("Smooth Normals", this);
+    btnFlipNormals_ = new QPushButton("Flip Normals", this);
+    btnRepairMesh_ = new QPushButton("🔧 Repair Mesh", this);  // ← YENİ!
+
+    btnRecalcNormals_->setMinimumHeight(35);
+    btnSmoothNormals_->setMinimumHeight(35);
+    btnFlipNormals_->setMinimumHeight(35);
+    btnRepairMesh_->setMinimumHeight(35);  // ← YENİ!
+
+    buttonLayout2->addWidget(btnRecalcNormals_);
+    buttonLayout2->addWidget(btnSmoothNormals_);
+    buttonLayout2->addWidget(btnFlipNormals_);
+    buttonLayout2->addWidget(btnRepairMesh_);  // ← YENİ!
+    buttonLayout2->addStretch();
+
+    mainLayout->addLayout(buttonLayout2);
+
+    // Third row: Slicing ← YENİ!
+    QHBoxLayout* buttonLayout3 = new QHBoxLayout();
+    buttonLayout3->setSpacing(5);
+
+    btnSliceMesh_ = new QPushButton("🍕 Slice Mesh", this);
+    btnSliceMesh_->setMinimumHeight(35);
+    btnSliceMesh_->setStyleSheet("QPushButton { font-weight: bold; background-color: #4CAF50; color: white; }");
+
+    btnShowLayers_ = new QPushButton("👁️ Show Layers", this);  // ← YENİ!
+    btnShowLayers_->setMinimumHeight(35);
+    btnShowLayers_->setStyleSheet("QPushButton { font-weight: bold; background-color: #2196F3; color: white; }");
+    btnShowLayers_->setEnabled(false);  // Başta disabled
+
+    buttonLayout3->addWidget(btnSliceMesh_);
+    buttonLayout3->addWidget(btnShowLayers_);  // ← YENİ!
+    buttonLayout3->addStretch();
+
+    mainLayout->addLayout(buttonLayout3);
+
+    // Fourth row: Layer slider ← YENİ!
+    QHBoxLayout* sliderLayout = new QHBoxLayout();
+    sliderLayout->setSpacing(5);
+
+    QLabel* labelSlider = new QLabel("Layer:", this);
+    sliderLayer_ = new QSlider(Qt::Horizontal, this);
+    sliderLayer_->setMinimum(0);
+    sliderLayer_->setMaximum(0);
+    sliderLayer_->setValue(0);
+    sliderLayer_->setEnabled(false);
+
+    labelCurrentLayer_ = new QLabel("0 / 0", this);
+    labelCurrentLayer_->setMinimumWidth(80);
+
+    sliderLayout->addWidget(labelSlider);
+    sliderLayout->addWidget(sliderLayer_, 1);  // stretch
+    sliderLayout->addWidget(labelCurrentLayer_);
+
+    mainLayout->addLayout(sliderLayout);
+
+    /* =========================== STATUS BAR WITH LABELS ===========================*/
+
+    // Triangle count label
+    labelTriangleCount_ = new QLabel("Triangles: 0", this);
+    labelTriangleCount_->setStyleSheet("QLabel { padding: 5px; font-weight: bold; }");
+    statusBar()->addPermanentWidget(labelTriangleCount_);
+
+    // Vertex count label
+    labelVertexCount_ = new QLabel("Vertices: 0", this);
+    labelVertexCount_->setStyleSheet("QLabel { padding: 5px; }");
+    statusBar()->addPermanentWidget(labelVertexCount_);
+
+    // Layer count label ← YENİ!
+    labelLayerCount_ = new QLabel("Layers: 0", this);
+    labelLayerCount_->setStyleSheet("QLabel { padding: 5px; color: #4CAF50; font-weight: bold; }");
+    statusBar()->addPermanentWidget(labelLayerCount_);
+
     // Status bar
     statusBar()->showMessage("Ready - Load a 3D model to begin");
 
@@ -65,6 +152,22 @@ MainWindow::MainWindow(QWidget *parent)
     connect(btnWireframe_, &QPushButton::clicked, this, &MainWindow::onWireframe);
     connect(btnSolid_, &QPushButton::clicked, this, &MainWindow::onSolid);
     connect(btnReset_, &QPushButton::clicked, this, &MainWindow::onResetView);
+
+    // Normal processing signals ← YENİ!
+    connect(btnRecalcNormals_, &QPushButton::clicked, this, &MainWindow::onRecalculateNormals);
+    connect(btnSmoothNormals_, &QPushButton::clicked, this, &MainWindow::onSmoothNormals);
+    connect(btnFlipNormals_, &QPushButton::clicked, this, &MainWindow::onFlipNormals);
+
+    // Repair signal ← YENİ!
+    connect(btnRepairMesh_, &QPushButton::clicked, this, &MainWindow::onRepairMesh);
+
+    // Slice signal ← YENİ!
+    connect(btnSliceMesh_, &QPushButton::clicked, this, &MainWindow::onSliceMesh);
+
+    // Slice signals
+    connect(btnSliceMesh_, &QPushButton::clicked, this, &MainWindow::onSliceMesh);
+    connect(btnShowLayers_, &QPushButton::clicked, this, &MainWindow::onShowLayers);  // ← YENİ!
+    connect(sliderLayer_, &QSlider::valueChanged, this, &MainWindow::onLayerChanged);  // ← YENİ!
 }
 
 MainWindow::~MainWindow()
@@ -94,6 +197,9 @@ void MainWindow::onLoadModel()
 
         // Render mesh
         meshRenderer_->setMesh(currentMesh_);
+
+        // UPDATE LABELS
+        updateMeshInfo();
 
         // Validate
         core::mesh::MeshValidator validator;
@@ -156,11 +262,13 @@ void MainWindow::onLoadModel()
 
         qDebug() << "Rendered:" << stats.triangleCount << "triangles";
 
+
     } catch (const std::exception& e) {
         statusBar()->showMessage("Error loading model");
         QMessageBox::critical(this, "Error", QString("Failed to load model:\n\n%1").arg(e.what()));
         qDebug() << "Error:" << e.what();
     }
+
 }
 
 void MainWindow::onWireframe()
@@ -181,5 +289,259 @@ void MainWindow::onResetView()
     if (currentMesh_.triangleCount() > 0) {
         meshRenderer_->setMesh(currentMesh_);
         statusBar()->showMessage("View reset");
+    }
+}
+
+void MainWindow::onRecalculateNormals()
+{
+    if (currentMesh_.triangleCount() == 0)
+    {
+        QMessageBox::warning(this, "No Mesh", "Please load a model first.");
+        return;
+    }
+
+    core::mesh::NormalProcessor processor;
+    auto result = processor.recalculateNormals(currentMesh_);
+
+    // Re-render
+    meshRenderer_->setMesh(currentMesh_);
+
+    updateMeshInfo();
+
+    QString msg = QString("Recalculated %1 normals").arg(result.normalsRecalculated);
+    statusBar()->showMessage(msg);
+    QMessageBox::information(this, "Normals Recalculated", msg);
+}
+
+void MainWindow::onSmoothNormals()
+{
+    if (currentMesh_.triangleCount() == 0)
+    {
+        QMessageBox::warning(this, "No Mesh", "Please load a model first.");
+        return;
+    }
+
+    core::mesh::NormalProcessor processor;
+    auto result = processor.smoothNormals(currentMesh_, 30.0f); // 30 degree threshold
+
+    // Re-render
+    meshRenderer_->setMesh(currentMesh_);
+
+    updateMeshInfo();
+
+    QString msg = QString("Smoothed %1 normals (angle threshold: 30°)")
+                      .arg(result.normalsSmoothed);
+    statusBar()->showMessage(msg);
+    QMessageBox::information(this, "Normals Smoothed", msg);
+}
+
+void MainWindow::onFlipNormals()
+{
+    if (currentMesh_.triangleCount() == 0)
+    {
+        QMessageBox::warning(this, "No Mesh", "Please load a model first.");
+        return;
+    }
+
+    core::mesh::NormalProcessor processor;
+    auto result = processor.flipNormals(currentMesh_);
+
+    // Re-render
+    meshRenderer_->setMesh(currentMesh_);
+
+    updateMeshInfo();
+
+    QString msg = QString("Flipped %1 normals").arg(result.normalsFlipped);
+    statusBar()->showMessage(msg);
+    QMessageBox::information(this, "Normals Flipped", msg);
+}
+
+void MainWindow::onRepairMesh()
+{
+
+
+    if (currentMesh_.triangleCount() == 0)
+    {
+        QMessageBox::warning(this, "No Mesh", "Please load a model first.");
+        return;
+    }
+
+
+
+    // Confirm repair
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "Repair Mesh",
+                                  "This will repair the mesh by:\n"
+                                  "- Removing invalid triangles (NaN/Inf)\n"
+                                  "- Removing degenerate triangles (area ≈ 0)\n"
+                                  "- Merging duplicate vertices\n\n"
+                                  "Continue?",
+                                  QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::No)
+    {
+        return;
+    }
+
+    statusBar()->showMessage("Repairing mesh...");
+
+    // REPAIR (mesh değişiyor!)
+    core::mesh::MeshRepairer repairer;
+    auto result = repairer.repair(currentMesh_);
+    // RE-RENDER
+    meshRenderer_->setMesh(currentMesh_);
+    meshRenderer_->update();  // ← Force repaint!
+
+    // UPDATE LABELS ← YENİ!
+    updateMeshInfo();
+
+    // Build report message
+    QString message;
+    message += "=== MESH REPAIR REPORT ===\n\n";
+
+    message += QString("Original triangles: %1\n").arg(result.originalTriangles);
+    message += QString("Final triangles: %1\n").arg(result.finalTriangles);
+    message += QString("Triangles removed: %1\n\n").arg(result.trianglesRemoved);
+
+    message += QString("Vertices merged: %1\n").arg(result.verticesMerged);
+    message += QString("Degenerate triangles removed: %1\n").arg(result.degenerateTrianglesRemoved);
+    message += QString("Invalid triangles removed: %1\n\n").arg(result.invalidTrianglesRemoved);
+
+    message += "Actions taken:\n";
+    for (const auto& action : result.actions)
+    {
+        message += QString("  • %1\n").arg(QString::fromStdString(action));
+    }
+
+    statusBar()->showMessage(QString("Mesh repaired: %1 triangles removed, %2 vertices merged")
+                                 .arg(result.trianglesRemoved)
+                                 .arg(result.verticesMerged));
+
+    QMessageBox::information(this, "Mesh Repair Complete", message);
+
+    qDebug() << "Repair complete:"
+             << result.trianglesRemoved << "triangles removed,"
+             << result.verticesMerged << "vertices merged";
+
+}
+
+void MainWindow::updateMeshInfo()
+{
+    int triangles = currentMesh_.triangleCount();
+    int vertices = triangles * 3;  // Approximate
+
+    labelTriangleCount_->setText(QString("Triangles: %1").arg(triangles));
+    labelVertexCount_->setText(QString("Vertices: ~%1").arg(vertices));
+}
+
+void MainWindow::onSliceMesh()
+{
+    if (currentMesh_.triangleCount() == 0)
+    {
+        QMessageBox::warning(this, "No Mesh", "Please load a model first.");
+        return;
+    }
+
+    statusBar()->showMessage("Slicing mesh...");
+
+    // Slicing settings
+    core::slicing::SlicingSettings settings;
+    settings.layerHeight = 0.2f;
+
+    // SLICE!
+    core::slicing::Slicer slicer;
+    slicingResult_ = slicer.slice(currentMesh_, settings);  // ← Sakla!
+
+    if (!slicingResult_.success)
+    {
+        QMessageBox::warning(this, "Slicing Failed", "Failed to slice mesh.");
+        statusBar()->showMessage("Slicing failed");
+        return;
+    }
+
+    // Enable layer controls ← YENİ!
+    btnShowLayers_->setEnabled(true);
+    sliderLayer_->setEnabled(true);
+    sliderLayer_->setMaximum(static_cast<int>(slicingResult_.layers.size()) - 1);
+    sliderLayer_->setValue(0);
+
+    // Update layer count
+    labelLayerCount_->setText(QString("Layers: %1").arg(slicingResult_.layers.size()));
+    labelCurrentLayer_->setText(QString("0 / %1").arg(slicingResult_.layers.size()));
+
+    // Build report
+    QString message;
+    message += "=== SLICING REPORT ===\n\n";
+    message += QString("Layer height: %1 mm\n").arg(settings.layerHeight, 0, 'f', 2);
+    message += QString("Total layers: %1\n").arg(slicingResult_.layers.size());
+    message += QString("Total height: %1 mm\n").arg(slicingResult_.totalHeight, 0, 'f', 2);
+    message += QString("Total segments: %1\n\n").arg(slicingResult_.totalSegments);
+
+    message += "Layer details (first 10):\n";
+    for (size_t i = 0; i < std::min(size_t(10), slicingResult_.layers.size()); ++i)
+    {
+        const auto& layer = slicingResult_.layers[i];
+        message += QString("  Layer %1: Z=%2mm, %3 segments\n")
+                       .arg(i)
+                       .arg(layer.zHeight(), 0, 'f', 2)
+                       .arg(layer.segmentCount());
+    }
+
+    if (slicingResult_.layers.size() > 10)
+    {
+        message += QString("  ... and %1 more layers\n").arg(slicingResult_.layers.size() - 10);
+    }
+
+    statusBar()->showMessage(QString("Sliced: %1 layers, %2 segments")
+                                 .arg(slicingResult_.layers.size())
+                                 .arg(slicingResult_.totalSegments));
+
+    QMessageBox::information(this, "Slicing Complete", message);
+
+    qDebug() << "Slicing complete:"
+             << slicingResult_.layers.size() << "layers,"
+             << slicingResult_.totalSegments << "segments";
+}
+
+void MainWindow::onShowLayers()
+{
+    if (slicingResult_.layers.empty())
+    {
+        QMessageBox::warning(this, "No Layers", "Please slice the mesh first.");
+        return;
+    }
+
+    // Switch to layer rendering mode
+    meshRenderer_->setRenderMode(rendering::MeshRenderer::RenderMode::Layers);
+    meshRenderer_->setLayers(slicingResult_.layers);
+    meshRenderer_->setCurrentLayer(-1);  // Show all layers
+
+    statusBar()->showMessage("Showing all layers");
+    qDebug() << "Showing" << slicingResult_.layers.size() << "layers";
+}
+
+void MainWindow::onLayerChanged(int value)
+{
+    if (slicingResult_.layers.empty())
+    {
+        return;
+    }
+
+    // Update current layer
+    meshRenderer_->setCurrentLayer(value);
+
+    // Update label
+    labelCurrentLayer_->setText(QString("%1 / %2")
+                                    .arg(value)
+                                    .arg(slicingResult_.layers.size()));
+
+    // Update status
+    if (value >= 0 && value < static_cast<int>(slicingResult_.layers.size()))
+    {
+        const auto& layer = slicingResult_.layers[value];
+        statusBar()->showMessage(QString("Layer %1: Z=%2mm, %3 segments")
+                                     .arg(value)
+                                     .arg(layer.zHeight(), 0, 'f', 2)
+                                     .arg(layer.segmentCount()));
     }
 }

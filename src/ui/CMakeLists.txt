@@ -14,6 +14,7 @@ target_link_libraries(ui_lib
         Qt6::OpenGLWidgets   # ← OpenGLWidgets ekle
         io_lib
         rendering_lib
+        core_slicing      # ← YENİ EKLE!
 )
 
 target_include_directories(ui_lib

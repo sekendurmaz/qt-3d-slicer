@@ -1,8 +1,17 @@
+# Core subdirectories
+add_subdirectory(slicing)  # ← YENİ EKLE
+
 # Core library
 add_library(core_lib STATIC
     mesh/mesh.cpp
     mesh/MeshValidator.cpp
-    mesh/MeshAnalyzer.cpp    # ← YENİ!
+    mesh/MeshAnalyzer.cpp
+    mesh/NormalProcessor.cpp
+    mesh/MeshRepairer.cpp
+
+
+
+
 )
 
 target_include_directories(core_lib

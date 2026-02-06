@@ -19,7 +19,7 @@ public:
     {
         name.clear();           // Clear the name
         triangles.clear();   // Clear the triangle list
-        //bounds = geometry::AABB{}; // Reset bounds to default (empty)
+        bounds = geometry::AABB{}; // Reset bounds to default (empty)
     }
 
       // Triangle ekle (IO katmanı için KRITIK!)

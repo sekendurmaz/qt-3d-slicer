@@ -1,9 +1,9 @@
 #pragma once
-
+#include "core/geometry/vec3.h"
 namespace core {
 namespace geometry {
 
-#include "core/geometry/vec3.h"
+
 
 struct AABB
 {

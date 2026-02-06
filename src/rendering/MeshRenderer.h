@@ -10,13 +10,11 @@
 #include <QWheelEvent>
 
 #include "core/mesh/mesh.h"
+#include "core/slicing/Layer.h"  // ← YENİ!
 #include "Camera.h"
 
 namespace rendering {
 
-/**
- * @brief OpenGL mesh renderer
- */
 class MeshRenderer : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
@@ -25,43 +23,50 @@ public:
     explicit MeshRenderer(QWidget* parent = nullptr);
     ~MeshRenderer() override;
 
-    /**
-     * @brief Render edilecek mesh'i set et
-     */
     void setMesh(const core::mesh::Mesh& mesh);
 
-    /**
-     * @brief Render mode
-     */
     enum class RenderMode {
         Wireframe,
         Solid,
-        SolidWireframe
+        SolidWireframe,
+        Layers         // ← YENİ! Layer rendering mode
     };
 
     void setRenderMode(RenderMode mode);
 
+    // Layer rendering ← YENİ!
+    void setLayers(const std::vector<core::slicing::Layer>& layers);
+    void setCurrentLayer(int layerIndex);  // -1 = show all
+    void clearLayers();
+
 protected:
-    // QOpenGLWidget overrides
     void initializeGL() override;
     void resizeGL(int w, int h) override;
     void paintGL() override;
 
-    // Mouse events
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
 
 private:
-    // OpenGL resources
+    // Mesh OpenGL resources
     QOpenGLVertexArrayObject vao_;
     QOpenGLBuffer vbo_;
     QOpenGLShaderProgram* shaderProgram_ = nullptr;
 
-    // Mesh data
-    std::vector<float> vertices_;  // Vertex data (x,y,z, nx,ny,nz)
+    std::vector<float> vertices_;
     int vertexCount_ = 0;
+
+    // Layer OpenGL resources ← YENİ!
+    QOpenGLVertexArrayObject layerVao_;
+    QOpenGLBuffer layerVbo_;
+    QOpenGLShaderProgram* layerShaderProgram_ = nullptr;
+
+    std::vector<float> layerVertices_;
+    int layerVertexCount_ = 0;
+    std::vector<core::slicing::Layer> layers_;
+    int currentLayerIndex_ = -1;  // -1 = show all
 
     // Camera
     Camera camera_;
@@ -75,7 +80,9 @@ private:
 
     // Helper functions
     void buildVertexBuffer(const core::mesh::Mesh& mesh);
+    void buildLayerBuffer();  // ← YENİ!
     void createShaders();
+    void createLayerShaders();  // ← YENİ!
 };
 
 } // namespace rendering
