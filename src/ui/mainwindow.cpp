@@ -17,6 +17,7 @@
 #include <QLabel>
 #include "QSlider"
 #include <QDebug>
+#include <chrono>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -436,71 +437,69 @@ void MainWindow::updateMeshInfo()
 
 void MainWindow::onSliceMesh()
 {
-    if (currentMesh_.triangleCount() == 0)
+    qDebug() << "\n========================================";
+    qDebug() << "🔪 SLICING STARTED";
+    qDebug() << "========================================";
+
+    if (currentMesh_.triangles.empty())
     {
-        QMessageBox::warning(this, "No Mesh", "Please load a model first.");
+        qDebug() << "❌ ERROR: No mesh loaded!";
+        qDebug() << "========================================\n";
         return;
     }
 
-    statusBar()->showMessage("Slicing mesh...");
+    qDebug() << "📦 Mesh Info:";
+    qDebug() << "   Triangles:" << currentMesh_.triangles.size();
 
-    // Slicing settings
+    // Settings
     core::slicing::SlicingSettings settings;
-    settings.layerHeight = 0.2f;
+    settings.layerHeight = 0.2f;  // veya UI'dan al
+    settings.useSpatialIndex = false;
 
-    // SLICE!
+    qDebug() << "\n⚙️  Slicing Settings:";
+    qDebug() << "   Layer Height:" << settings.layerHeight << "mm";
+    qDebug() << "   Spatial Index:" << (settings.useSpatialIndex ? "✅ ON" : "❌ OFF");
+
+    // ⏱️ TIMER BAŞLAT
+    qDebug() << "\n⏱️  Starting slicing...";
+    auto startTime = std::chrono::high_resolution_clock::now();
+
     core::slicing::Slicer slicer;
-    slicingResult_ = slicer.slice(currentMesh_, settings);  // ← Sakla!
+    slicingResult_ = slicer.slice(currentMesh_, settings);
 
-    if (!slicingResult_.success)
+    // ⏱️ TIMER BİTİR
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          endTime - startTime
+                          ).count();
+
+    // Sonuçlar
+    qDebug() << "\n📊 RESULTS:";
+
+    if (slicingResult_.success())
     {
-        QMessageBox::warning(this, "Slicing Failed", "Failed to slice mesh.");
-        statusBar()->showMessage("Slicing failed");
-        return;
+        qDebug() << "   Status: ✅ SUCCESS";
+        qDebug() << "   Layers:" << slicingResult_.layers.size();
+        qDebug() << "   Segments:" << slicingResult_.totalSegments;
+        qDebug() << "   Height:" << slicingResult_.totalHeight << "mm";
+        qDebug() << "\n⏱️  PERFORMANCE:";
+        qDebug() << "   Time:" << durationMs << "ms";
+        qDebug() << "   Speed:" << (slicingResult_.layers.size() * 1000.0 / durationMs) << "layers/sec";
+
+        // Throughput hesapla
+        double totalOps = static_cast<double>(currentMesh_.triangles.size()) * slicingResult_.layers.size();
+        double opsPerSec = totalOps / (durationMs / 1000.0);
+        qDebug() << "   Throughput:" << static_cast<long long>(opsPerSec) << "triangle-checks/sec";
+    }
+    else
+    {
+        qDebug() << "   Status: ❌ FAILED";
+        qDebug() << "   Error:" << QString::fromStdString(slicingResult_.errorMessage);
     }
 
-    // Enable layer controls ← YENİ!
-    btnShowLayers_->setEnabled(true);
-    sliderLayer_->setEnabled(true);
-    sliderLayer_->setMaximum(static_cast<int>(slicingResult_.layers.size()) - 1);
-    sliderLayer_->setValue(0);
+    qDebug() << "========================================\n";
 
-    // Update layer count
-    labelLayerCount_->setText(QString("Layers: %1").arg(slicingResult_.layers.size()));
-    labelCurrentLayer_->setText(QString("0 / %1").arg(slicingResult_.layers.size()));
-
-    // Build report
-    QString message;
-    message += "=== SLICING REPORT ===\n\n";
-    message += QString("Layer height: %1 mm\n").arg(settings.layerHeight, 0, 'f', 2);
-    message += QString("Total layers: %1\n").arg(slicingResult_.layers.size());
-    message += QString("Total height: %1 mm\n").arg(slicingResult_.totalHeight, 0, 'f', 2);
-    message += QString("Total segments: %1\n\n").arg(slicingResult_.totalSegments);
-
-    message += "Layer details (first 10):\n";
-    for (size_t i = 0; i < std::min(size_t(10), slicingResult_.layers.size()); ++i)
-    {
-        const auto& layer = slicingResult_.layers[i];
-        message += QString("  Layer %1: Z=%2mm, %3 segments\n")
-                       .arg(i)
-                       .arg(layer.zHeight(), 0, 'f', 2)
-                       .arg(layer.segmentCount());
-    }
-
-    if (slicingResult_.layers.size() > 10)
-    {
-        message += QString("  ... and %1 more layers\n").arg(slicingResult_.layers.size() - 10);
-    }
-
-    statusBar()->showMessage(QString("Sliced: %1 layers, %2 segments")
-                                 .arg(slicingResult_.layers.size())
-                                 .arg(slicingResult_.totalSegments));
-
-    QMessageBox::information(this, "Slicing Complete", message);
-
-    qDebug() << "Slicing complete:"
-             << slicingResult_.layers.size() << "layers,"
-             << slicingResult_.totalSegments << "segments";
+    // UI update (existing code)...
 }
 
 void MainWindow::onShowLayers()

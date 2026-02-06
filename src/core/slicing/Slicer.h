@@ -1,29 +1,43 @@
 #pragma once
 
 #include "Layer.h"
+#include "LineSegment.h"
+#include "SlicingConstants.h"
 #include "core/mesh/mesh.h"
 #include <vector>
+#include <string>
 
 namespace core {
 namespace slicing {
 
-/**
- * @brief Slicing parametreleri
- */
-struct SlicingSettings
-{
-    float layerHeight = 0.2f;      // Katman yüksekliği (mm)
-    float minZ = 0.0f;             // Başlangıç Z
-    float maxZ = 0.0f;             // Bitiş Z (0 = auto-detect)
+// ⭐ Forward declaration
+class ZIndexedMesh;
 
-    // Gelecek özellikler için:
-    // float infillDensity = 0.2f;
-    // int wallCount = 2;
+enum class SlicingError
+{
+    Success = 0,
+    EmptyMesh,
+    InvalidLayerHeight,
+    InvalidBounds,
+    TooManyLayers,
+    NoIntersections
 };
 
-/**
- * @brief Slicing sonuçları
- */
+enum class VertexPosition
+{
+    Above,
+    On,
+    Below
+};
+
+struct SlicingSettings
+{
+    float layerHeight = 0.2f;
+    float minZ = 0.0f;
+    float maxZ = 0.0f;
+    bool useSpatialIndex = true;
+};
+
 struct SlicingResult
 {
     std::vector<Layer> layers;
@@ -32,49 +46,36 @@ struct SlicingResult
     float totalHeight = 0.0f;
     float layerHeight = 0.0f;
 
-    bool success = false;
+    SlicingError error = SlicingError::Success;
+    std::string errorMessage;
+
+    bool success() const { return error == SlicingError::Success; }
 };
 
-/**
- * @brief Mesh slicer - mesh'i katmanlara böler
- */
 class Slicer
 {
 public:
     Slicer() = default;
 
-    /**
-     * @brief Mesh'i slice et
-     * @param mesh Slice edilecek mesh
-     * @param settings Slicing parametreleri
-     * @return Slicing sonuçları
-     */
     SlicingResult slice(const mesh::Mesh& mesh, const SlicingSettings& settings);
 
 private:
-    /**
-     * @brief Tek bir Z seviyesinde slice
-     * @param mesh Mesh
-     * @param z Z yüksekliği
-     * @return Layer
-     */
+    // ⭐ İKİ AYRI OVERLOAD (açıkça belirt!)
     Layer sliceAtZ(const mesh::Mesh& mesh, float z);
+    Layer sliceAtZ(const ZIndexedMesh& indexedMesh, float z);  // ← Forward declaration yeterli
 
-    /**
-     * @brief Triangle ile düzlemin kesişimi
-     * @param tri Triangle
-     * @param z Z seviyesi
-     * @param outSegment Çıkış line segment (varsa)
-     * @return true = kesişim var
-     */
     bool intersectTriangleWithPlane(const geometry::Triangle& tri,
                                     float z,
                                     LineSegment& outSegment);
 
-    /**
-     * @brief Mesh'in Z sınırlarını bul
-     */
     void getBoundsZ(const mesh::Mesh& mesh, float& minZ, float& maxZ);
+
+    VertexPosition classifyVertex(float vz, float planeZ) const;
+
+    bool interpolateEdge(const geometry::Vec3& p1,
+                         const geometry::Vec3& p2,
+                         float z,
+                         geometry::Vec3& outPoint) const;
 };
 
 } // namespace slicing
