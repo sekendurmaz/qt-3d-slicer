@@ -1,5 +1,0 @@
-model_io_stl_autogen/timestamp: \
-	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/io/models/stl/CMakeLists.txt \
-	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/io/models/stl/StlReader.cpp \
-	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/io/models/stl/StlReader.h \
-	/usr/local/bin/cmake
