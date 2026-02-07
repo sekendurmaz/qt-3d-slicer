@@ -35,14 +35,25 @@ jobs:
     - name: 🚫 Disable 3MF for beta build
       shell: pwsh
       run: |
-        # Disable 3MF in models CMakeLists.txt
-        (Get-Content src/io/models/CMakeLists.txt) -replace 'add_subdirectory\(3mf\)', '# add_subdirectory(3mf)  # Disabled in beta' | Set-Content src/io/models/CMakeLists.txt
+        Write-Host "🚫 Disabling 3MF support for beta build..."
 
-        # Disable 3MF in ModelFactory.cpp
-        (Get-Content src/io/models/common/ModelFactory.cpp) -replace '#include "../3mf/ThreemfReader.h"', '// #include "../3mf/ThreemfReader.h"  // Disabled in beta' | Set-Content src/io/models/common/ModelFactory.cpp
-        (Get-Content src/io/models/common/ModelFactory.cpp) -replace 'readers_.push_back\(std::make_unique<threemf::ThreemfReader>\(\)\);', '// readers_.push_back(std::make_unique<threemf::ThreemfReader>());  // Disabled in beta' | Set-Content src/io/models/common/ModelFactory.cpp
+        # 1. Disable 3MF subdirectory in models CMakeLists.txt
+        $modelsFile = "src/io/models/CMakeLists.txt"
+        (Get-Content $modelsFile) -replace 'add_subdirectory\(3mf\)', '# add_subdirectory(3mf)  # Disabled in beta' | Set-Content $modelsFile
+        Write-Host "✅ Updated $modelsFile"
 
-        Write-Host "✅ 3MF disabled for beta build"
+        # 2. Disable 3MF in ModelFactory.cpp
+        $factoryFile = "src/io/models/common/ModelFactory.cpp"
+        (Get-Content $factoryFile) -replace '#include "../3mf/ThreemfReader.h"', '// #include "../3mf/ThreemfReader.h"  // Disabled in beta' | Set-Content $factoryFile
+        (Get-Content $factoryFile) -replace 'readers_.push_back\(std::make_unique<threemf::ThreemfReader>\(\)\);', '// readers_.push_back(std::make_unique<threemf::ThreemfReader>());  // Disabled in beta' | Set-Content $factoryFile
+        Write-Host "✅ Updated $factoryFile"
+
+        # 3. Remove 3MF link from main CMakeLists.txt
+        $mainFile = "src/CMakeLists.txt"
+        (Get-Content $mainFile) -replace 'model_io_3mf', '# model_io_3mf  # Disabled in beta' | Set-Content $mainFile
+        Write-Host "✅ Updated $mainFile"
+
+        Write-Host "🎯 3MF disabled successfully!"
 
     - name: 🔨 Configure CMake
       run: |
