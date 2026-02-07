@@ -1,4 +1,4 @@
-name: Windows Build (MSVC)
+name: Cross-Platform Build
 
 on:
   push:
@@ -11,9 +11,33 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  build-msvc:
-    name: Build with MSVC
-    runs-on: windows-latest
+  build:
+    name: Build on ${{ matrix.os }} (${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows MSVC
+          - os: windows-latest
+            compiler: msvc
+            qt_arch: win64_msvc2022_64
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_arch: "-A x64"
+            artifact_name: MyQtApp-Windows-MSVC
+            executable_path: build/src/Release/MyQtApp.exe
+            deploy_tool: windeployqt
+
+          # Linux GCC
+          - os: ubuntu-latest
+            compiler: gcc
+            qt_arch: gcc_64
+            cmake_generator: "Ninja"
+            cmake_arch: ""
+            artifact_name: MyQtApp-Linux-GCC
+            executable_path: build/src/MyQtApp
+            deploy_tool: linuxdeployqt
 
     steps:
     - uses: actions/checkout@v4
@@ -24,31 +48,74 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ env.QT_VERSION }}
-        arch: win64_msvc2022_64
+        arch: ${{ matrix.qt_arch }}
         cache: true
 
+    # Windows specific: Setup MSVC
     - name: Setup MSVC
+      if: matrix.os == 'windows-latest'
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
 
-    - name: Configure CMake
+    # Linux specific: Install dependencies
+    - name: Install Linux Dependencies
+      if: matrix.os == 'ubuntu-latest'
       run: |
-        cmake -B build -G "Visual Studio 17 2022" -A x64 `
+        sudo apt-get update
+        sudo apt-get install -y \
+          ninja-build \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          libxkbcommon-x11-0 \
+          libxcb-icccm4 \
+          libxcb-image0 \
+          libxcb-keysyms1 \
+          libxcb-render-util0 \
+          libxcb-xinerama0 \
+          libxcb-randr0 \
+          libxcb-shape0
+
+    # Windows CMake Configuration
+    - name: Configure CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cmake -B build -G "${{ matrix.cmake_generator }}" ${{ matrix.cmake_arch }} `
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+          -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
+
+    # Linux CMake Configuration
+    - name: Configure CMake (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cmake -B build -G "${{ matrix.cmake_generator }}" \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
           -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
 
     - name: Build
       run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 4
 
-    - name: Package
+    # Windows Packaging
+    - name: Package (Windows)
+      if: matrix.os == 'windows-latest'
       run: |
         mkdir package
-        cp build/src/${{ env.BUILD_TYPE }}/MyQtApp.exe package/
+        cp ${{ matrix.executable_path }} package/
         windeployqt package/MyQtApp.exe --release --no-translations
+
+    # Linux Packaging
+    - name: Package (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        mkdir -p package
+        cp ${{ matrix.executable_path }} package/
+        # Copy Qt libraries
+        ldd package/MyQtApp | grep "Qt" | awk '{print $3}' | xargs -I {} cp {} package/ || true
+        chmod +x package/MyQtApp
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: MyQtApp-Windows-MSVC-${{ github.sha }}
+        name: ${{ matrix.artifact_name }}-${{ github.sha }}
         path: package/
+        retention-days: 7
