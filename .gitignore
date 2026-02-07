@@ -44,3 +44,4 @@ Makefile
 # Other
 .DS_Store
 Thumbs.dbbuild_log.txt 
+build_log.txt 
