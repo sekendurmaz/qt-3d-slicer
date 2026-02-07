@@ -88,7 +88,7 @@ This beta version demonstrates core capabilities. **For enterprise-grade solutio
 - **White-label solutions**
 - **Technical training & support**
 
-** Interested? [Contact me]:(#firat13.sd@gmail.com)!**
+** Interested? [Contact me below](#-contact--custom-development) or email: firat13.sd@gmail.com**
 
 ---
 
@@ -99,7 +99,7 @@ This beta version demonstrates core capabilities. **For enterprise-grade solutio
     <td><img src="docs/images/mesh-view.png" alt="Mesh View" width="300"/><br/><i>3D Mesh Visualization</i></td>
     <td><img src="docs/images/layer-view.png" alt="Layer View" width="300"/><br/><i>Layer-by-Layer Preview</i></td>
     <td><img src="docs/images/wireframe.png" alt="Wireframe" width="300"/><br/><i>Wireframe Mode</i></td>
-    <td><img src="docs/images/slicer-view.png" alt="slicer-view" width="300"/><br/><i>Wireframe Mode</i></td>
+    <td><img src="docs/images/slicer-view.png" alt="slicer-view" width="300"/><br/><i>One layer-view Mode</i></td>
   </tr>
 </table>
 
@@ -110,9 +110,9 @@ This beta version demonstrates core capabilities. **For enterprise-grade solutio
 ###  Pre-built Binaries
 
 Download the latest builds from [GitHub Actions](https://github.com/sekendurmaz/qt-3d-slicer/actions):
-- Windows: `MyQtApp-Windows-MSVC-{sha}.zip`
-- Linux: `MyQtApp-Linux-{sha}.tar.gz`
-- macOS: `MyQtApp-macOS-{sha}.dmg`
+- Windows: `Qt3DSlicer-Windows-MSVC-{sha}.zip` 
+- Linux: `Qt3DSlicer-Linux-{sha}.tar.gz`       
+- macOS: `Qt3DSlicer-macOS-{sha}.dmg`          
 
 ### ️ Build from Source
 
@@ -127,7 +127,7 @@ git clone --recursive https://github.com/sekendurmaz/qt-3d-slicer.git
 cd qt-3d-slicer
 cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="C:/Qt/6.7.2/msvc2019_64"
 cmake --build build --config Release
-build/src/Release/MyQtApp.exe
+build/src/Release/Qt3DSlicer.exe
 ```
 
 #### Linux (Ubuntu 22.04+)
@@ -142,7 +142,7 @@ sudo apt-get install -y qt6-base-dev libqt6opengl6-dev cmake ninja-build
 # Build
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-./build/src/MyQtApp
+./build/src/Qt3DSlicer
 ```
 
 #### macOS
@@ -156,7 +156,7 @@ brew install qt@6 ninja
 # Build
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
 cmake --build build
-./build/src/MyQtApp
+./build/src/Qt3DSlicer
 ```
 
 ---
