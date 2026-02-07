@@ -110,40 +110,40 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         mkdir package
-        cp build/src/${{ env.BUILD_TYPE }}/MyQtApp.exe package/
-        windeployqt package/MyQtApp.exe --release --no-translations
+        cp build/src/${{ env.BUILD_TYPE }}/Qt3DSlicer.exe package/
+        windeployqt package/Qt3DSlicer.exe --release --no-translations
 
     # Linux packaging
     - name: Package (Linux)
       if: runner.os == 'Linux'
       run: |
         mkdir -p package/lib
-        cp build/src/MyQtApp package/
+        cp build/src/Qt3DSlicer package/
 
         # Copy Qt libraries
-        ldd build/src/MyQtApp | grep "Qt6" | awk '{print $3}' | xargs -I {} cp {} package/lib/ || true
+        ldd build/src/Qt3DSlicer | grep "Qt6" | awk '{print $3}' | xargs -I {} cp {} package/lib/ || true
 
         # Create run script
         cat > package/run.sh << 'EOF'
         #!/bin/bash
         DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
-        "$DIR/MyQtApp" "$@"
+        "$DIR/Qt3DSlicer" "$@"
         EOF
         chmod +x package/run.sh
-        chmod +x package/MyQtApp
+        chmod +x package/Qt3DSlicer
 
     # macOS packaging
     - name: Package (macOS)
       if: runner.os == 'macOS'
       run: |
         mkdir -p package
-        cp build/src/MyQtApp package/
-        macdeployqt package/MyQtApp -always-overwrite || true
-        chmod +x package/MyQtApp
+        cp build/src/Qt3DSlicer package/
+        macdeployqt package/Qt3DSlicer -always-overwrite || true
+        chmod +x package/Qt3DSlicer
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: MyQtApp-${{ matrix.artifact_name }}-${{ github.sha }}
+        name: Qt3DSlicer-${{ matrix.artifact_name }}-${{ github.sha }}
         path: package/
