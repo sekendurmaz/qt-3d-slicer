@@ -7,8 +7,6 @@ add_library(model_io_3mf STATIC
 target_include_directories(model_io_3mf
     PUBLIC
         ${CMAKE_SOURCE_DIR}/src
-    PRIVATE
-        C:/Qt/6.10.1/mingw_64/include/QtZlib  # ← Qt'nin zlib header'ı
 )
 
 # Dependencies
@@ -18,6 +16,7 @@ target_link_libraries(model_io_3mf
         core_lib
         tinyxml2
         Qt6::Core
+        ZLIB::ZLIB
 )
 
 # C++17

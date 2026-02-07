@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "FilePreviewDialog.h"
 #include "rendering/MeshRenderer.h"
 #include "io/models/common/ModelFactory.h"
 #include "core/mesh/MeshValidator.h"
@@ -178,12 +179,14 @@ MainWindow::~MainWindow()
 
 void MainWindow::onLoadModel()
 {
-    QString fileName = QFileDialog::getOpenFileName(
-        this,
-        "Select 3D Model",
-        "",
-        "3D Models (*.stl *.obj *.3mf);;STL Files (*.stl);;OBJ Files (*.obj);;3MF Files (*.3mf);;All Files (*)"
-        );
+    // Use custom file preview dialog
+    FilePreviewDialog previewDialog(this);
+    
+    if (previewDialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    
+    QString fileName = previewDialog.getSelectedFile();
 
     if (fileName.isEmpty()) {
         return;

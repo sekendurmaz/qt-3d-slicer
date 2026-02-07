@@ -1,8 +1,8 @@
 add_library(ui_lib STATIC
     mainwindow.h
     mainwindow.cpp
-
-
+    FilePreviewDialog.h
+    FilePreviewDialog.cpp
 )
 
 target_link_libraries(ui_lib
