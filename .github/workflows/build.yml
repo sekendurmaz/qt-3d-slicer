@@ -7,11 +7,6 @@ on:
     branches: [ main ]
 
 jobs:
-  # ============================================
-  # WINDOWS BUILD (BETA VERSION)
-  # ============================================
-  # 3MF, Linux and macOS builds available in enterprise version
-  # ============================================
   build-windows:
     runs-on: windows-latest
 
@@ -42,17 +37,23 @@ jobs:
         echo "✅ Updated src/io/models/CMakeLists.txt"
 
         # 2. Disable 3MF in ModelFactory.cpp
-        sed -i 's|#include "../3mf/ThreemfReader.h"|// #include "../3mf/ThreemfReader.h"  // Disabled in beta|' src/io/models/common/ModelFactory.cpp
-        sed -i 's/readers_.push_back(std::make_unique<threemf::ThreemfReader>());/\/\/ readers_.push_back(std::make_unique<threemf::ThreemfReader>());  \/\/ Disabled in beta/' src/io/models/common/ModelFactory.cpp
+        sed -i 's|#include "../3mf/ThreemfReader.h"|// #include "../3mf/ThreemfReader.h"  // Disabled|' src/io/models/common/ModelFactory.cpp
+        sed -i 's/readers_.push_back(std::make_unique<threemf::ThreemfReader>());/\/\/ &  \/\/ Disabled/' src/io/models/common/ModelFactory.cpp
         echo "✅ Updated src/io/models/common/ModelFactory.cpp"
 
-        # 3. Remove 3MF from main executable link
-        sed -i 's/model_io_3mf/# model_io_3mf  # Disabled in beta/' src/CMakeLists.txt
-        echo "✅ Updated src/CMakeLists.txt"
+        # 3. Remove ALL model_io_3mf references from src/CMakeLists.txt
+        sed -i '/model_io_3mf/d' src/CMakeLists.txt
+        echo "✅ Removed model_io_3mf from src/CMakeLists.txt"
 
         # 4. Verify changes
-        echo "📋 Checking src/CMakeLists.txt:"
-        grep -n "model_io_3mf" src/CMakeLists.txt || echo "No model_io_3mf found (good!)"
+        echo ""
+        echo "📋 Checking for remaining 3mf references:"
+        echo "--- src/CMakeLists.txt ---"
+        grep -n "3mf" src/CMakeLists.txt || echo "  ✅ No 3mf found"
+        echo ""
+        echo "--- src/io/models/CMakeLists.txt ---"
+        grep -n "3mf" src/io/models/CMakeLists.txt || echo "  ✅ No 3mf found (except comments)"
+        echo ""
 
         echo "🎯 3MF disabled successfully!"
 
