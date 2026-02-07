@@ -96,10 +96,10 @@ This beta version demonstrates core capabilities. **For enterprise-grade solutio
 
 <table>
   <tr>
-    <td><img src="docs/images/mesh-view.png" alt="Mesh View" width="300"/><br/><i>3D Mesh Visualization</i></td>
-    <td><img src="docs/images/layer-view.png" alt="Layer View" width="300"/><br/><i>Layer-by-Layer Preview</i></td>
-    <td><img src="docs/images/wireframe.png" alt="Wireframe" width="300"/><br/><i>Wireframe Mode</i></td>
-    <td><img src="docs/images/slicer-view.png" alt="slicer-view" width="300"/><br/><i>One layer-view Mode</i></td>
+    <td><img src="src/docs/images/mesh-view.png" alt="Mesh View" width="300"/><br/><i>3D Mesh Visualization</i></td>
+    <td><img src="src/docs/images/layer-view.png" alt="Layer View" width="300"/><br/><i>Layer-by-Layer Preview</i></td>
+    <td><img src="src/docs/images/wireframe.png" alt="Wireframe" width="300"/><br/><i>Wireframe Mode</i></td>
+    <td><img src="src/docs/images/slicer-view.png" alt="slicer-view" width="300"/><br/><i>One layer-view Mode</i></td>
   </tr>
 </table>
 
