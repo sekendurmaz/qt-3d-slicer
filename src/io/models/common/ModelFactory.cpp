@@ -1,7 +1,7 @@
 #include "ModelFactory.h"
 #include "io/models/stl/StlReader.h"
 #include "io/models/obj/ObjReader.h"
-#include "io/models/3mf/ThreemfReader.h"
+// #include "io/models/3mf/ThreemfReader.h"  // ← KALDIRILDI
 
 #include <algorithm>
 #include <stdexcept>
@@ -9,7 +9,7 @@
 namespace io {
 namespace models {
 
-std::unique_ptr<IModelReader> 
+std::unique_ptr<IModelReader>
 ModelFactory::createReader(const std::string& filepath)
 {
     std::string ext = getExtension(filepath);
@@ -22,15 +22,15 @@ ModelFactory::createReader(const std::string& filepath)
     {
         return std::make_unique<obj::ObjReader>();
     }
-    else if (ext == ".3mf")
-    {
-        return std::make_unique<threemf::ThreemfReader>();
-    }
+    // else if (ext == ".3mf")  // ← KALDIRILDI
+    // {
+    //     return std::make_unique<threemf::ThreemfReader>();
+    // }
 
     throw std::runtime_error("Unsupported file format: " + ext);
 }
 
-core::mesh::Mesh 
+core::mesh::Mesh
 ModelFactory::loadModel(const std::string& filepath)
 {
     // 1. Uygun reader'ı oluştur
@@ -40,12 +40,12 @@ ModelFactory::loadModel(const std::string& filepath)
     return reader->read(filepath);
 }
 
-std::string 
+std::string
 ModelFactory::getExtension(const std::string& filepath)
 {
     // Son '.' karakterini bul
     size_t pos = filepath.find_last_of('.');
-    
+
     if (pos == std::string::npos)
     {
         return "";  // Uzantı yok

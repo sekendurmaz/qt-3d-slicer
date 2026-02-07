@@ -15,7 +15,7 @@ target_link_libraries(model_io_common
         core_lib         # Core'a bağımlı (Mesh kullanıyor)
         model_io_stl     # ← STL reader
         model_io_obj     # ← OBJ reader
-        model_io_3mf
+        
 )
 
 # C++17

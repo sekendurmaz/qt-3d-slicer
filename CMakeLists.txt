@@ -23,7 +23,6 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS
     OpenGLWidgets   # ← YENİ!
 )
 
-add_subdirectory(third_party)
 
 # src alt dizinini ekle
 add_subdirectory(src)
