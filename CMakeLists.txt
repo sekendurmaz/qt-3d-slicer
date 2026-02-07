@@ -21,6 +21,7 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS
     Gui
     OpenGL          # ← YENİ!
     OpenGLWidgets   # ← YENİ!
+    Concurrent      # ← Arka plan thread'leri için
 )
 
 add_subdirectory(third_party)

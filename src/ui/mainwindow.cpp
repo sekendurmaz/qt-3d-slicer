@@ -17,7 +17,31 @@
 #include <QLabel>
 #include "QSlider"
 #include <QDebug>
+#include <QtConcurrent>
+#include <QFutureWatcher>
 #include <chrono>
+
+// Arka plan thread sonuçları için yapılar
+namespace {
+
+struct AsyncLoadResult {
+    core::mesh::Mesh mesh;
+    core::mesh::ValidationResult validResult;
+    core::mesh::MeshStatistics stats;
+    long long durationMs = 0;
+};
+
+struct AsyncRepairResult {
+    core::mesh::Mesh mesh;
+    core::mesh::MeshRepairResult result;
+};
+
+struct AsyncNormalResult {
+    core::mesh::Mesh mesh;
+    core::mesh::NormalProcessingResult result;
+};
+
+} // anonymous namespace
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -162,9 +186,6 @@ MainWindow::MainWindow(QWidget *parent)
     // Repair signal ← YENİ!
     connect(btnRepairMesh_, &QPushButton::clicked, this, &MainWindow::onRepairMesh);
 
-    // Slice signal ← YENİ!
-    connect(btnSliceMesh_, &QPushButton::clicked, this, &MainWindow::onSliceMesh);
-
     // Slice signals
     connect(btnSliceMesh_, &QPushButton::clicked, this, &MainWindow::onSliceMesh);
     connect(btnShowLayers_, &QPushButton::clicked, this, &MainWindow::onShowLayers);  // ← YENİ!
@@ -191,22 +212,17 @@ void MainWindow::onLoadModel()
 
     qDebug() << "Loading:" << fileName;
 
+    setUiBusy(true);
     statusBar()->showMessage("Loading model...");
 
-    // ⏱️ TIMER BAŞLAT
-    auto startTime = std::chrono::high_resolution_clock::now();
+    auto* watcher = new QFutureWatcher<AsyncLoadResult>(this);
+    connect(watcher, &QFutureWatcher<AsyncLoadResult>::finished, this, [this, watcher, fileName]() {
+        auto loadResult = watcher->result();
+        watcher->deleteLater();
 
-    try {
-        // Load mesh
-        currentMesh_ = io::models::ModelFactory::loadModel(fileName.toStdString());
+        currentMesh_ = std::move(loadResult.mesh);
 
-        // ⏱️ TIMER BİTİR
-        auto endTime = std::chrono::high_resolution_clock::now();
-        auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
-                              endTime - startTime
-                              ).count();
-
-        qDebug() << "⏱️  Load time:" << durationMs << "ms";
+        qDebug() << "⏱️  Load time:" << loadResult.durationMs << "ms";
 
         // Render mesh
         meshRenderer_->setMesh(currentMesh_);
@@ -214,13 +230,8 @@ void MainWindow::onLoadModel()
         // UPDATE LABELS
         updateMeshInfo();
 
-        // Validate
-        core::mesh::MeshValidator validator;
-        auto validResult = validator.validate(currentMesh_);
-
-        // Analyze
-        core::mesh::MeshAnalyzer analyzer;
-        auto stats = analyzer.analyze(currentMesh_);
+        const auto& stats = loadResult.stats;
+        const auto& validResult = loadResult.validResult;
 
         // Update status bar
         QString statusMsg = QString("Loaded: %1 - %2 triangles, Volume: %3 mm³")
@@ -271,17 +282,32 @@ void MainWindow::onLoadModel()
         message += QString("Invalid vertices: %1\n").arg(validResult.invalidVertices);
         message += QString("Duplicate vertices: %1").arg(validResult.duplicateVertices);
 
+        setUiBusy(false);
         QMessageBox::information(this, "Model Analysis", message);
 
         qDebug() << "Rendered:" << stats.triangleCount << "triangles";
+    });
 
+    std::string fileNameStd = fileName.toStdString();
+    watcher->setFuture(QtConcurrent::run([fileNameStd]() -> AsyncLoadResult {
+        AsyncLoadResult result;
 
-    } catch (const std::exception& e) {
-        statusBar()->showMessage("Error loading model");
-        QMessageBox::critical(this, "Error", QString("Failed to load model:\n\n%1").arg(e.what()));
-        qDebug() << "Error:" << e.what();
-    }
+        auto startTime = std::chrono::high_resolution_clock::now();
 
+        result.mesh = io::models::ModelFactory::loadModel(fileNameStd);
+
+        core::mesh::MeshValidator validator;
+        result.validResult = validator.validate(result.mesh);
+
+        core::mesh::MeshAnalyzer analyzer;
+        result.stats = analyzer.analyze(result.mesh);
+
+        auto endTime = std::chrono::high_resolution_clock::now();
+        result.durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                endTime - startTime).count();
+
+        return result;
+    }));
 }
 
 void MainWindow::onWireframe()
@@ -313,17 +339,32 @@ void MainWindow::onRecalculateNormals()
         return;
     }
 
-    core::mesh::NormalProcessor processor;
-    auto result = processor.recalculateNormals(currentMesh_);
+    setUiBusy(true);
+    statusBar()->showMessage("Recalculating normals...");
 
-    // Re-render
-    meshRenderer_->setMesh(currentMesh_);
+    auto* watcher = new QFutureWatcher<AsyncNormalResult>(this);
+    connect(watcher, &QFutureWatcher<AsyncNormalResult>::finished, this, [this, watcher]() {
+        auto res = watcher->result();
+        watcher->deleteLater();
 
-    updateMeshInfo();
+        currentMesh_ = std::move(res.mesh);
+        meshRenderer_->setMesh(currentMesh_);
+        updateMeshInfo();
 
-    QString msg = QString("Recalculated %1 normals").arg(result.normalsRecalculated);
-    statusBar()->showMessage(msg);
-    QMessageBox::information(this, "Normals Recalculated", msg);
+        QString msg = QString("Recalculated %1 normals").arg(res.result.normalsRecalculated);
+        statusBar()->showMessage(msg);
+        setUiBusy(false);
+        QMessageBox::information(this, "Normals Recalculated", msg);
+    });
+
+    auto meshCopy = currentMesh_;
+    watcher->setFuture(QtConcurrent::run([meshCopy]() mutable -> AsyncNormalResult {
+        AsyncNormalResult res;
+        core::mesh::NormalProcessor processor;
+        res.result = processor.recalculateNormals(meshCopy);
+        res.mesh = std::move(meshCopy);
+        return res;
+    }));
 }
 
 void MainWindow::onSmoothNormals()
@@ -334,18 +375,33 @@ void MainWindow::onSmoothNormals()
         return;
     }
 
-    core::mesh::NormalProcessor processor;
-    auto result = processor.smoothNormals(currentMesh_, 30.0f); // 30 degree threshold
+    setUiBusy(true);
+    statusBar()->showMessage("Smoothing normals...");
 
-    // Re-render
-    meshRenderer_->setMesh(currentMesh_);
+    auto* watcher = new QFutureWatcher<AsyncNormalResult>(this);
+    connect(watcher, &QFutureWatcher<AsyncNormalResult>::finished, this, [this, watcher]() {
+        auto res = watcher->result();
+        watcher->deleteLater();
 
-    updateMeshInfo();
+        currentMesh_ = std::move(res.mesh);
+        meshRenderer_->setMesh(currentMesh_);
+        updateMeshInfo();
 
-    QString msg = QString("Smoothed %1 normals (angle threshold: 30°)")
-                      .arg(result.normalsSmoothed);
-    statusBar()->showMessage(msg);
-    QMessageBox::information(this, "Normals Smoothed", msg);
+        QString msg = QString("Smoothed %1 normals (angle threshold: 30°)")
+                          .arg(res.result.normalsSmoothed);
+        statusBar()->showMessage(msg);
+        setUiBusy(false);
+        QMessageBox::information(this, "Normals Smoothed", msg);
+    });
+
+    auto meshCopy = currentMesh_;
+    watcher->setFuture(QtConcurrent::run([meshCopy]() mutable -> AsyncNormalResult {
+        AsyncNormalResult res;
+        core::mesh::NormalProcessor processor;
+        res.result = processor.smoothNormals(meshCopy, 30.0f);
+        res.mesh = std::move(meshCopy);
+        return res;
+    }));
 }
 
 void MainWindow::onFlipNormals()
@@ -356,30 +412,42 @@ void MainWindow::onFlipNormals()
         return;
     }
 
-    core::mesh::NormalProcessor processor;
-    auto result = processor.flipNormals(currentMesh_);
+    setUiBusy(true);
+    statusBar()->showMessage("Flipping normals...");
 
-    // Re-render
-    meshRenderer_->setMesh(currentMesh_);
+    auto* watcher = new QFutureWatcher<AsyncNormalResult>(this);
+    connect(watcher, &QFutureWatcher<AsyncNormalResult>::finished, this, [this, watcher]() {
+        auto res = watcher->result();
+        watcher->deleteLater();
 
-    updateMeshInfo();
+        currentMesh_ = std::move(res.mesh);
+        meshRenderer_->setMesh(currentMesh_);
+        updateMeshInfo();
 
-    QString msg = QString("Flipped %1 normals").arg(result.normalsFlipped);
-    statusBar()->showMessage(msg);
-    QMessageBox::information(this, "Normals Flipped", msg);
+        QString msg = QString("Flipped %1 normals").arg(res.result.normalsFlipped);
+        statusBar()->showMessage(msg);
+        setUiBusy(false);
+        QMessageBox::information(this, "Normals Flipped", msg);
+    });
+
+    auto meshCopy = currentMesh_;
+    watcher->setFuture(QtConcurrent::run([meshCopy]() mutable -> AsyncNormalResult {
+        AsyncNormalResult res;
+        core::mesh::NormalProcessor processor;
+        res.result = processor.flipNormals(meshCopy);
+        res.mesh = std::move(meshCopy);
+        return res;
+    }));
 }
 
 void MainWindow::onRepairMesh()
 {
-
 
     if (currentMesh_.triangleCount() == 0)
     {
         QMessageBox::warning(this, "No Mesh", "Please load a model first.");
         return;
     }
-
-
 
     // Confirm repair
     QMessageBox::StandardButton reply;
@@ -396,46 +464,62 @@ void MainWindow::onRepairMesh()
         return;
     }
 
+    setUiBusy(true);
     statusBar()->showMessage("Repairing mesh...");
 
-    // REPAIR (mesh değişiyor!)
-    core::mesh::MeshRepairer repairer;
-    auto result = repairer.repair(currentMesh_);
-    // RE-RENDER
-    meshRenderer_->setMesh(currentMesh_);
-    meshRenderer_->update();  // ← Force repaint!
+    auto* watcher = new QFutureWatcher<AsyncRepairResult>(this);
+    connect(watcher, &QFutureWatcher<AsyncRepairResult>::finished, this, [this, watcher]() {
+        auto repairRes = watcher->result();
+        watcher->deleteLater();
 
-    // UPDATE LABELS ← YENİ!
-    updateMeshInfo();
+        currentMesh_ = std::move(repairRes.mesh);
+        const auto& result = repairRes.result;
 
-    // Build report message
-    QString message;
-    message += "=== MESH REPAIR REPORT ===\n\n";
+        // RE-RENDER
+        meshRenderer_->setMesh(currentMesh_);
+        meshRenderer_->update();
 
-    message += QString("Original triangles: %1\n").arg(result.originalTriangles);
-    message += QString("Final triangles: %1\n").arg(result.finalTriangles);
-    message += QString("Triangles removed: %1\n\n").arg(result.trianglesRemoved);
+        // UPDATE LABELS
+        updateMeshInfo();
 
-    message += QString("Vertices merged: %1\n").arg(result.verticesMerged);
-    message += QString("Degenerate triangles removed: %1\n").arg(result.degenerateTrianglesRemoved);
-    message += QString("Invalid triangles removed: %1\n\n").arg(result.invalidTrianglesRemoved);
+        // Build report message
+        QString message;
+        message += "=== MESH REPAIR REPORT ===\n\n";
 
-    message += "Actions taken:\n";
-    for (const auto& action : result.actions)
-    {
-        message += QString("  • %1\n").arg(QString::fromStdString(action));
-    }
+        message += QString("Original triangles: %1\n").arg(result.originalTriangles);
+        message += QString("Final triangles: %1\n").arg(result.finalTriangles);
+        message += QString("Triangles removed: %1\n\n").arg(result.trianglesRemoved);
 
-    statusBar()->showMessage(QString("Mesh repaired: %1 triangles removed, %2 vertices merged")
-                                 .arg(result.trianglesRemoved)
-                                 .arg(result.verticesMerged));
+        message += QString("Vertices merged: %1\n").arg(result.verticesMerged);
+        message += QString("Degenerate triangles removed: %1\n").arg(result.degenerateTrianglesRemoved);
+        message += QString("Invalid triangles removed: %1\n\n").arg(result.invalidTrianglesRemoved);
 
-    QMessageBox::information(this, "Mesh Repair Complete", message);
+        message += "Actions taken:\n";
+        for (const auto& action : result.actions)
+        {
+            message += QString("  • %1\n").arg(QString::fromStdString(action));
+        }
 
-    qDebug() << "Repair complete:"
-             << result.trianglesRemoved << "triangles removed,"
-             << result.verticesMerged << "vertices merged";
+        statusBar()->showMessage(QString("Mesh repaired: %1 triangles removed, %2 vertices merged")
+                                     .arg(result.trianglesRemoved)
+                                     .arg(result.verticesMerged));
 
+        setUiBusy(false);
+        QMessageBox::information(this, "Mesh Repair Complete", message);
+
+        qDebug() << "Repair complete:"
+                 << result.trianglesRemoved << "triangles removed,"
+                 << result.verticesMerged << "vertices merged";
+    });
+
+    auto meshCopy = currentMesh_;
+    watcher->setFuture(QtConcurrent::run([meshCopy]() mutable -> AsyncRepairResult {
+        AsyncRepairResult res;
+        core::mesh::MeshRepairer repairer;
+        res.result = repairer.repair(meshCopy);
+        res.mesh = std::move(meshCopy);
+        return res;
+    }));
 }
 
 void MainWindow::updateMeshInfo()
@@ -472,78 +556,81 @@ void MainWindow::onSliceMesh()
     qDebug() << "   Layer Height:" << settings.layerHeight << "mm";
     qDebug() << "   Spatial Index:" << (settings.useSpatialIndex ? "✅ ON" : "❌ OFF");
 
-    // ⏱️ TIMER BAŞLAT
+    setUiBusy(true);
+    statusBar()->showMessage("Slicing mesh...");
+
     qDebug() << "\n⏱️  Starting slicing...";
+
+    auto* watcher = new QFutureWatcher<core::slicing::SlicingResult>(this);
     auto startTime = std::chrono::high_resolution_clock::now();
 
-    core::slicing::Slicer slicer;
-    slicingResult_ = slicer.slice(currentMesh_, settings);
+    connect(watcher, &QFutureWatcher<core::slicing::SlicingResult>::finished, this, [this, watcher, startTime]() {
+        slicingResult_ = watcher->result();
+        watcher->deleteLater();
 
-    // ⏱️ TIMER BİTİR
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
-                          endTime - startTime
-                          ).count();
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              endTime - startTime).count();
 
-    // Sonuçlar
-    qDebug() << "\n📊 RESULTS:";
+        // Sonuçlar
+        qDebug() << "\n📊 RESULTS:";
 
-    if (slicingResult_.success())
-    {
-        qDebug() << "   Status: ✅ SUCCESS";
-        qDebug() << "   Layers:" << slicingResult_.layers.size();
-        qDebug() << "   Segments:" << slicingResult_.totalSegments;
-        qDebug() << "   Height:" << slicingResult_.totalHeight << "mm";
-        qDebug() << "\n⏱️  PERFORMANCE:";
-        qDebug() << "   Time:" << durationMs << "ms";
-        qDebug() << "   Speed:" << (slicingResult_.layers.size() * 1000.0 / durationMs) << "layers/sec";
+        if (slicingResult_.success())
+        {
+            qDebug() << "   Status: ✅ SUCCESS";
+            qDebug() << "   Layers:" << slicingResult_.layers.size();
+            qDebug() << "   Segments:" << slicingResult_.totalSegments;
+            qDebug() << "   Height:" << slicingResult_.totalHeight << "mm";
+            qDebug() << "\n⏱️  PERFORMANCE:";
+            qDebug() << "   Time:" << durationMs << "ms";
+            qDebug() << "   Speed:" << (slicingResult_.layers.size() * 1000.0 / std::max(durationMs, 1LL)) << "layers/sec";
 
-        double totalOps = static_cast<double>(currentMesh_.triangles.size()) * slicingResult_.layers.size();
-        double opsPerSec = totalOps / (durationMs / 1000.0);
-        qDebug() << "   Throughput:" << static_cast<long long>(opsPerSec) << "triangle-checks/sec";
+            // ⭐ UI UPDATE
+            btnShowLayers_->setEnabled(true);
+            sliderLayer_->setEnabled(true);
+            sliderLayer_->setMaximum(slicingResult_.layers.size() - 1);
+            sliderLayer_->setValue(0);
 
-        // ⭐ UI UPDATE - EKLE!
-        // Enable layer controls
-        btnShowLayers_->setEnabled(true);
-        sliderLayer_->setEnabled(true);
-        sliderLayer_->setMaximum(slicingResult_.layers.size() - 1);
-        sliderLayer_->setValue(0);
+            labelLayerCount_->setText(QString("Layers: %1").arg(slicingResult_.layers.size()));
 
-        // Update layer count label
-        labelLayerCount_->setText(QString("Layers: %1").arg(slicingResult_.layers.size()));
+            statusBar()->showMessage(QString("✅ Slicing complete: %1 layers, %2 segments in %3 ms")
+                                         .arg(slicingResult_.layers.size())
+                                         .arg(slicingResult_.totalSegments)
+                                         .arg(durationMs));
 
-        // Update status bar
-        statusBar()->showMessage(QString("✅ Slicing complete: %1 layers, %2 segments in %3 ms")
-                                     .arg(slicingResult_.layers.size())
-                                     .arg(slicingResult_.totalSegments)
-                                     .arg(durationMs));
+            setUiBusy(false);
+            QMessageBox::information(this, "Slicing Complete",
+                                     QString("✅ Slicing successful!\n\n"
+                                             "Layers: %1\n"
+                                             "Segments: %2\n"
+                                             "Time: %3 ms\n"
+                                             "Speed: %4 layers/sec\n\n"
+                                             "Click 'Show Layers' to visualize.")
+                                         .arg(slicingResult_.layers.size())
+                                         .arg(slicingResult_.totalSegments)
+                                         .arg(durationMs)
+                                         .arg(slicingResult_.layers.size() * 1000.0 / std::max(durationMs, 1LL), 0, 'f', 1));
+        }
+        else
+        {
+            qDebug() << "   Status: ❌ FAILED";
+            qDebug() << "   Error:" << QString::fromStdString(slicingResult_.errorMessage);
 
-        // Show success message
-        QMessageBox::information(this, "Slicing Complete",
-                                 QString("✅ Slicing successful!\n\n"
-                                         "Layers: %1\n"
-                                         "Segments: %2\n"
-                                         "Time: %3 ms\n"
-                                         "Speed: %4 layers/sec\n\n"
-                                         "Click 'Show Layers' to visualize.")
-                                     .arg(slicingResult_.layers.size())
-                                     .arg(slicingResult_.totalSegments)
-                                     .arg(durationMs)
-                                     .arg(slicingResult_.layers.size() * 1000.0 / durationMs, 0, 'f', 1));
-    }
-    else
-    {
-        qDebug() << "   Status: ❌ FAILED";
-        qDebug() << "   Error:" << QString::fromStdString(slicingResult_.errorMessage);
+            statusBar()->showMessage("❌ Slicing failed!");
+            setUiBusy(false);
+            QMessageBox::critical(this, "Slicing Failed",
+                                  QString("Slicing failed:\n\n%1")
+                                      .arg(QString::fromStdString(slicingResult_.errorMessage)));
+        }
 
-        // ⭐ ERROR HANDLING - EKLE!
-        statusBar()->showMessage("❌ Slicing failed!");
-        QMessageBox::critical(this, "Slicing Failed",
-                              QString("Slicing failed:\n\n%1")
-                                  .arg(QString::fromStdString(slicingResult_.errorMessage)));
-    }
+        qDebug() << "========================================\n";
+    });
 
-    qDebug() << "========================================\n";
+    auto meshCopy = currentMesh_;
+    watcher->setFuture(QtConcurrent::run([meshCopy, settings]() -> core::slicing::SlicingResult {
+        core::slicing::Slicer slicer;
+        return slicer.slice(meshCopy, settings);
+    }));
 }
 
 void MainWindow::onShowLayers()
@@ -587,4 +674,17 @@ void MainWindow::onLayerChanged(int value)
                                      .arg(layer.zHeight(), 0, 'f', 2)
                                      .arg(layer.segmentCount()));
     }
+}
+
+void MainWindow::setUiBusy(bool busy)
+{
+    btnLoad_->setEnabled(!busy);
+    btnSliceMesh_->setEnabled(!busy);
+    btnRepairMesh_->setEnabled(!busy);
+    btnRecalcNormals_->setEnabled(!busy);
+    btnSmoothNormals_->setEnabled(!busy);
+    btnFlipNormals_->setEnabled(!busy);
+    btnWireframe_->setEnabled(!busy);
+    btnSolid_->setEnabled(!busy);
+    btnReset_->setEnabled(!busy);
 }

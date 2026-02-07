@@ -12,6 +12,7 @@ target_link_libraries(ui_lib
         Qt6::Gui
         Qt6::OpenGL          # ← OpenGL ekle
         Qt6::OpenGLWidgets   # ← OpenGLWidgets ekle
+        Qt6::Concurrent      # ← Arka plan thread'leri için
         io_lib
         rendering_lib
         core_slicing      # ← YENİ EKLE!

@@ -75,4 +75,5 @@ private:
 
     // Helper
     void updateMeshInfo();
+    void setUiBusy(bool busy);  // ← Arka plan işlemi sırasında UI'ı kilitle/aç
 };
