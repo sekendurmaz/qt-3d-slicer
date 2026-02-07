@@ -1,0 +1,44 @@
+name : Build
+
+							# Ne zaman çalışacak?
+on :
+  push:
+    branches : [ main ]      				# main'e push atınca
+  pull_request :
+    branches : [ main ]       				# Pull request açılınca
+
+jobs :
+  # ============================================
+  # WINDOWS BUILD
+  # ============================================
+  build-windows :
+    runs-on: windows-latest				# Microsoft'un Windows server'ında çalış
+
+  steps :
+  
+  - name : Checkout code					# Github kodunu indirir.		
+    uses : actions/checkout@v4
+    with : 
+      submodules: recursive  				# third_party/tinyxml2 de indirilir
+
+  - name : Install Qt	      				# Qt'yi otomatik kurar Ama GitHub server'ında!
+    uses : jurplel/install-qt-action@v3
+    with : 
+      version : '6.10.1'
+      host    : 'windows'
+      target  : 'desktop'
+      arch    : 'win64_mingw'
+
+   - name : Configure Cmake
+     run  : 
+       cmake -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+	
+   - name : Build
+     run  : cmake --build build --config Release
+	
+   - name:  Upload artifact
+     uses: actions/upload-artifact@v4
+     with:
+       name: qt-3d-slicer-windows
+       path: build/src/MyQtApp.exe
+	
