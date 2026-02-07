@@ -1,4 +1,4 @@
-name: Cross-Platform Build
+name: Cross-Platform Build (Windows & Linux)
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  QT_VERSION: 6.8.1
+  QT_VERSION: 6.7.2
   BUILD_TYPE: Release
 
 jobs:
@@ -18,17 +18,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
         include:
           - os: windows-latest
             qt_arch: win64_msvc2019_64
-            artifact_name: MyQtApp-Windows-MSVC
-            executable_path: build/src/Release/MyQtApp.exe
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_arch: x64
+            artifact_name: Windows-MSVC
 
           - os: ubuntu-latest
             qt_arch: gcc_64
-            artifact_name: MyQtApp-Linux
-            executable_path: build/src/MyQtApp
+            cmake_generator: "Ninja"
+            artifact_name: Linux
 
     steps:
     - uses: actions/checkout@v4
@@ -42,7 +42,15 @@ jobs:
         arch: ${{ matrix.qt_arch }}
         cache: true
 
-    - name: Install Linux Dependencies
+    # Windows specific
+    - name: Setup MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    # Linux specific
+    - name: Install Dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
@@ -50,38 +58,32 @@ jobs:
           libgl1-mesa-dev \
           libglu1-mesa-dev \
           libxkbcommon-x11-0 \
-          libxcb-cursor0 \
           libxcb-icccm4 \
           libxcb-image0 \
           libxcb-keysyms1 \
-          libxcb-randr0 \
           libxcb-render-util0 \
-          libxcb-shape0 \
+          libxcb-xinerama0 \
+          libxcb-cursor0 \
           ninja-build
-
-    - name: Setup MSVC
-      if: runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
 
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
       run: |
-        cmake -B build -G "Visual Studio 17 2022" -A x64 `
+        cmake -B build -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_arch }} `
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
           -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
 
     - name: Configure CMake (Linux)
       if: runner.os == 'Linux'
       run: |
-        cmake -B build -G "Ninja" \
+        cmake -B build -G "${{ matrix.cmake_generator }}" \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
           -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
 
     - name: Build
       run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 4
 
+    # Windows packaging
     - name: Package (Windows)
       if: runner.os == 'Windows'
       run: |
@@ -89,27 +91,27 @@ jobs:
         cp build/src/${{ env.BUILD_TYPE }}/MyQtApp.exe package/
         windeployqt package/MyQtApp.exe --release --no-translations
 
+    # Linux packaging
     - name: Package (Linux)
       if: runner.os == 'Linux'
       run: |
-        mkdir package
+        mkdir -p package/lib
         cp build/src/MyQtApp package/
-        chmod +x package/MyQtApp
+        cp -r ${{ env.Qt6_DIR }}/lib/libQt6*.so* package/lib/
+        cp -r ${{ env.Qt6_DIR }}/plugins package/
 
-        # Copy Qt libraries
-        ldd package/MyQtApp | grep "=> /" | awk '{print $3}' | xargs -I '{}' cp -v '{}' package/ || true
-
-        # Create a simple run script
+        # Create run script
         cat > package/run.sh << 'EOF'
         #!/bin/bash
-        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        export LD_LIBRARY_PATH="$SCRIPT_DIR:$LD_LIBRARY_PATH"
-        "$SCRIPT_DIR/MyQtApp" "$@"
+        DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+        export QT_PLUGIN_PATH="$DIR/plugins"
+        "$DIR/MyQtApp" "$@"
         EOF
         chmod +x package/run.sh
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.artifact_name }}-${{ github.sha }}
+        name: MyQtApp-${{ matrix.artifact_name }}-${{ github.sha }}
         path: package/
