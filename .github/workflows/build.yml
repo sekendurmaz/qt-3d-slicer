@@ -8,7 +8,7 @@ on:
 
 jobs:
   # ============================================
-  # WINDOWS BUILD
+  # WINDOWS BUILD (MSVC)
   # ============================================
   build-windows:
     runs-on: windows-latest
@@ -22,16 +22,19 @@ jobs:
     - name: 🔧 Install Qt
       uses: jurplel/install-qt-action@v3
       with:
-        version: '6.10.1'
+        version: '6.7.0'
         host: 'windows'
         target: 'desktop'
-        arch: 'win64_mingw'
+        arch: 'win64_msvc2019_64'
 
-    - name: 🛠️ Configure CMake
+    - name: 🛠️ Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: 🔨 Configure CMake
       run: |
-        cmake -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+        cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
 
-    - name: 🔨 Build
+    - name: 🚀 Build
       run: cmake --build build --config Release
 
     - name: 📦 Upload artifact
