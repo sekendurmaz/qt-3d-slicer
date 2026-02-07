@@ -113,11 +113,16 @@ SlicingResult Slicer::slice(const mesh::Mesh& mesh, const SlicingSettings& setti
     return result;
 }
 
+// İndexed mesh versiyonu
 Layer Slicer::sliceAtZ(const ZIndexedMesh& indexedMesh, float z)
 {
     Layer layer(z);
 
     auto triangles = indexedMesh.getTrianglesAtZ(z);
+
+    // ⭐ PERFORMANS: Kapasite ayarla
+    // Her triangle en fazla 1 segment üretebilir
+    layer.reserve(triangles.size());
 
     for (const auto* tri : triangles)
     {
@@ -132,9 +137,15 @@ Layer Slicer::sliceAtZ(const ZIndexedMesh& indexedMesh, float z)
     return layer;
 }
 
+// Naive mesh versiyonu
 Layer Slicer::sliceAtZ(const mesh::Mesh& mesh, float z)
 {
     Layer layer(z);
+
+    // ⭐ PERFORMANS: Kapasite ayarla
+    // Worst case: tüm triangle'lar bu layer'ı keser
+    // Ortalama: ~%0.2 (1/500) triangle keser
+    layer.reserve(mesh.triangles.size() / 100);  // Tahmini %1
 
     for (const auto& tri : mesh.triangles)
     {
@@ -148,6 +159,7 @@ Layer Slicer::sliceAtZ(const mesh::Mesh& mesh, float z)
 
     return layer;
 }
+
 
 bool Slicer::intersectTriangleWithPlane(const geometry::Triangle& tri,
                                         float z,
