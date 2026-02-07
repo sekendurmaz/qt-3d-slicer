@@ -8,7 +8,9 @@ on:
 
 jobs:
   # ============================================
-  # WINDOWS BUILD (MSVC)
+  # WINDOWS BUILD (BETA VERSION)
+  # ============================================
+  # 3MF, Linux and macOS builds available in enterprise version
   # ============================================
   build-windows:
     runs-on: windows-latest
@@ -30,6 +32,19 @@ jobs:
     - name: 🛠️ Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
 
+    - name: 🚫 Disable 3MF for beta build
+      run: |
+        # Temporarily comment out 3MF in CMakeLists
+        $content = Get-Content src/io/models/CMakeLists.txt
+        $content = $content -replace 'add_subdirectory\(3mf\)', '# add_subdirectory(3mf)  # Disabled in beta'
+        Set-Content src/io/models/CMakeLists.txt $content
+
+        # Comment out 3MF in ModelFactory.cpp
+        $content = Get-Content src/io/models/common/ModelFactory.cpp
+        $content = $content -replace '#include "../3mf/ThreemfReader.h"', '// #include "../3mf/ThreemfReader.h"  // Disabled in beta'
+        $content = $content -replace 'readers_.push_back\(std::make_unique<threemf::ThreemfReader>\(\)\);', '// readers_.push_back(std::make_unique<threemf::ThreemfReader>());  // Disabled in beta'
+        Set-Content src/io/models/common/ModelFactory.cpp $content
+
     - name: 🔨 Configure CMake
       run: |
         cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
@@ -37,8 +52,8 @@ jobs:
     - name: 🚀 Build
       run: cmake --build build --config Release
 
-    - name: 📦 Upload artifact
+    - name: 📦 Upload Windows Build
       uses: actions/upload-artifact@v4
       with:
-        name: qt-3d-slicer-windows
+        name: qt-3d-slicer-windows-beta
         path: build/src/MyQtApp.exe
