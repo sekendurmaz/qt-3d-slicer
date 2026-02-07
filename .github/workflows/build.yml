@@ -34,7 +34,7 @@ jobs:
 
         # 1. Comment out 3MF subdirectory
         sed -i 's/add_subdirectory(3mf)/# add_subdirectory(3mf)  # Disabled in beta/' src/io/models/CMakeLists.txt
-        echo "✅ Commented add_subdirectory(3mf)"
+        echo "��� Commented add_subdirectory(3mf)"
 
         # 2. Remove model_io_3mf from interface library
         sed -i '/model_io_3mf/d' src/io/models/CMakeLists.txt
@@ -45,18 +45,11 @@ jobs:
         sed -i 's/readers_.push_back(std::make_unique<threemf::ThreemfReader>());/\/\/ &  \/\/ Disabled/' src/io/models/common/ModelFactory.cpp
         echo "✅ Disabled 3MF in ModelFactory.cpp"
 
-        # 4. Verify changes
-        echo ""
-        echo "📋 Verification:"
-        echo "--- src/io/models/CMakeLists.txt ---"
-        cat src/io/models/CMakeLists.txt
-        echo ""
-
         echo "🎯 3MF disabled successfully!"
 
-    - name: 🔨 Configure CMake
+    - name: 🔨 Configure CMake (Fresh)
       run: |
-        cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+        cmake -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release --fresh
 
     - name: 🚀 Build
       run: cmake --build build --config Release
