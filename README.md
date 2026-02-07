@@ -1,267 +1,291 @@
 # 🖨️ Qt 3D Slicer
 
+[![Build Status](https://github.com/sekendurmaz/qt-3d-slicer/actions/workflows/windows-msvc.yml/badge.svg)](https://github.com/sekendurmaz/qt-3d-slicer/actions/workflows/windows-msvc.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![C++17](https://img.shields.io/badge/C++-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
-[![Qt](https://img.shields.io/badge/Qt-6.10-green.svg)](https://www.qt.io/)
-[![CMake](https://img.shields.io/badge/CMake-3.16+-blue.svg)](https://cmake.org/)
+[![Qt](https://img.shields.io/badge/Qt-6.4+-green.svg)](https://www.qt.io/)
+[![Windows](https://img.shields.io/badge/Windows-✓-blue.svg)]()
+[![Linux](https://img.shields.io/badge/Linux-✓-orange.svg)]()
+[![macOS](https://img.shields.io/badge/macOS-✓-lightgrey.svg)]()
 
-> **⚠️ BETA VERSION** - This is a demonstration/portfolio project showcasing high-performance 3D mesh slicing algorithms and modern C++ techniques. For enterprise-grade solutions with advanced features, please [contact me](#-contact).
+> ** BETA VERSION** - This is a demonstration/portfolio project showcasing high-performance 3D mesh slicing algorithms and modern C++ techniques.
 
-A high-performance 3D model slicer built with Qt6 and modern C++17, featuring spatial indexing optimization and multi-format support.
+A cross-platform, high-performance 3D model slicer built with Qt6 and modern C++17, featuring spatial indexing optimization (26x speedup) and multi-format support.
 
 ![Screenshot](docs/images/screenshot.png)
 
 ---
 
-## ✨ Features
+##  What This Is
 
-### 🎯 Core Capabilities
-- **Multi-Format Support**: STL (Binary/ASCII), OBJ, 3MF
-- **High-Performance Slicing**: Spatial indexing (26x speedup)
-- **Real-time 3D Visualization**: OpenGL-based mesh rendering
-- **Layer Navigation**: Interactive layer-by-layer preview
-- **Mesh Analysis**: Volume, surface area, bounds calculation
-- **Mesh Processing**: Normal calculation, smoothing, repair
-
-### ⚡ Performance Highlights
-| Model | Triangles | Load Time | Slice Time | Speedup |
-|-------|-----------|-----------|------------|---------|
-| **Bugatti** | 1.47M | 2.3s | 430ms | **26x** 🚀 |
-| **Stanford Bunny** | 69K | 85ms | 18ms | **24x** |
-
-**Optimization Techniques:**
-- Z-indexed spatial bucketing (O(n*m) → O(n + m*k))
-- Memory pre-allocation (reserve capacity)
-- Move semantics & perfect forwarding
-- Cache-friendly data structures
+This is a **beta/portfolio project** that demonstrates:
+- ✅ Advanced spatial indexing algorithms (26x performance improvement)
+- ✅ Modern C++17 techniques (move semantics, RAII, perfect forwarding)
+- ✅ Cross-platform development (Windows, Linux, macOS)
+- ✅ Clean architecture (SOLID principles, layered design)
+- ✅ Real-time 3D visualization with OpenGL
+- ✅ Professional CI/CD pipeline
 
 ---
 
-## 📸 Screenshots
+##  Current Features (Beta)
+
+###  Core Capabilities
+- **Multi-Format Support**: STL (Binary/ASCII), OBJ
+- **High-Performance Slicing**: Spatial indexing with Z-bucketing (26x speedup)
+- **Real-time 3D Visualization**: Hardware-accelerated OpenGL rendering
+- **Layer Navigation**: Interactive layer-by-layer preview
+- **Mesh Analysis**: Volume, surface area, bounds calculation
+- **Mesh Processing**: Normal calculation, validation, basic repair
+
+###  Performance Highlights
+| Model                 | Triangles     | Load Time | Slice Time | Speedup  |
+|-----------------------|---------------|-----------|------------|----------|
+| **Model.obj**         | 1.47M         | 2.3s      | 430ms      | **26x**  |
+| **Model.stl**         | 871K          | 1.2s      | 312ms      | **22x**  |
+|-----------------------|---------------|-----------|------------|----------|
+
+**Optimization Techniques:**
+- Z-indexed spatial bucketing (O(n×m) → O(n + m×k))
+- Memory pre-allocation and reserve strategy
+- Move semantics & perfect forwarding
+- Cache-friendly data structures
+- SIMD-ready data layout
+
+---
+
+##  Need More Features?
+
+This beta version demonstrates core capabilities. **For enterprise-grade solutions, contact me for:**
+
+###  Additional Format Support
+- **3MF** (partial support exists, full implementation available)
+- **AMF** (Additive Manufacturing Format)
+- **STEP/IGES** (CAD formats)
+- **Custom proprietary formats**
+
+###  Performance Enhancements
+- **Multi-threaded slicing** (OpenMP/TBB parallelization)
+- **GPU acceleration** (CUDA/OpenCL compute shaders)
+- **SIMD optimization** (AVX2/AVX-512 vectorization)
+- **Memory-mapped I/O** for large files (>1GB)
+- **Streaming architecture** for cloud processing
+
+###  Advanced Features
+- **GCode generation** with path optimization
+- **Infill patterns** (lines, grid, honeycomb, gyroid, adaptive)
+- **Support structure generation** (tree supports, organic supports)
+- **Variable layer heights** (adaptive slicing)
+- **Multi-material support** (MMU/IDEX printers)
+- **Cloud integration** (AWS S3, Azure Blob, Google Cloud)
+- **REST API** for headless operation
+- **Plugin system** for custom algorithms
+
+###  Enterprise Solutions
+- **Performance profiling & optimization consulting**
+- **Custom algorithm development**
+- **Integration with existing pipelines**
+- **White-label solutions**
+- **Technical training & support**
+
+** Interested? [Contact me]:(#firat13.sd@gmail.com)!**
+
+---
+
+##  Screenshots
 
 <table>
   <tr>
     <td><img src="docs/images/mesh-view.png" alt="Mesh View" width="300"/><br/><i>3D Mesh Visualization</i></td>
     <td><img src="docs/images/layer-view.png" alt="Layer View" width="300"/><br/><i>Layer-by-Layer Preview</i></td>
     <td><img src="docs/images/wireframe.png" alt="Wireframe" width="300"/><br/><i>Wireframe Mode</i></td>
+    <td><img src="docs/images/slicer-view.png" alt="slicer-view" width="300"/><br/><i>Wireframe Mode</i></td>
   </tr>
 </table>
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
-### Prerequisites
-- **Qt 6.10+** (Core, Widgets, OpenGL, OpenGLWidgets)
+###  Pre-built Binaries
+
+Download the latest builds from [GitHub Actions](https://github.com/sekendurmaz/qt-3d-slicer/actions):
+- Windows: `MyQtApp-Windows-MSVC-{sha}.zip`
+- Linux: `MyQtApp-Linux-{sha}.tar.gz`
+- macOS: `MyQtApp-macOS-{sha}.dmg`
+
+### ️ Build from Source
+
+#### Prerequisites
+- **Qt 6.4+** (Core, Widgets, OpenGL, OpenGLWidgets)
 - **CMake 3.16+**
 - **C++17 compatible compiler** (GCC 9+, Clang 10+, MSVC 2019+)
 
-### Installation
-
-#### Windows (MinGW)
+#### Windows (MSVC)
 ```bash
-git clone https://github.com/sekendurmaz/qt-3d-slicer.git
+git clone --recursive https://github.com/sekendurmaz/qt-3d-slicer.git
 cd qt-3d-slicer
-cmake -B build -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH="C:/Qt/6.10.1/mingw_64"
+cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="C:/Qt/6.7.2/msvc2019_64"
 cmake --build build --config Release
-build/src/MyQtApp.exe
+build/src/Release/MyQtApp.exe
 ```
 
-#### Linux
+#### Linux (Ubuntu 22.04+)
 ```bash
-git clone https://github.com/sekendurmaz/qt-3d-slicer.git
+git clone --recursive https://github.com/sekendurmaz/qt-3d-slicer.git
 cd qt-3d-slicer
-cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+# Install dependencies
+sudo apt-get update
+sudo apt-get install -y qt6-base-dev libqt6opengl6-dev cmake ninja-build
+
+# Build
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ./build/src/MyQtApp
 ```
 
 #### macOS
 ```bash
-git clone https://github.com/sekendurmaz/qt-3d-slicer.git
+git clone --recursive https://github.com/sekendurmaz/qt-3d-slicer.git
 cd qt-3d-slicer
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="~/Qt/6.10.1/macos"
+
+# Install Qt via Homebrew (or download from qt.io)
+brew install qt@6 ninja
+
+# Build
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)"
 cmake --build build
-open build/src/MyQtApp.app
+./build/src/MyQtApp
 ```
 
 ---
 
-## 🏗️ Architecture
+## ️ Architecture
 
 ```
 qt-3d-slicer/
 ├── src/
-│   ├── core/              # Core algorithms
-│   │   ├── geometry/      # Vec3, Triangle, AABB
-│   │   ├── mesh/          # Mesh data structure
+│   ├── core/              # Core algorithms (format-agnostic)
+│   │   ├── geometry/      # Vec3, Triangle, AABB, math utilities
+│   │   ├── mesh/          # Mesh data structure & analysis
 │   │   └── slicing/       # Slicer, ZIndexedMesh, Layer
-│   ├── io/                # File I/O
-│   │   └── models/        # STL, OBJ, 3MF readers
-│   ├── rendering/         # OpenGL rendering
-│   │   ├── MeshRenderer   # 3D mesh + layer rendering
+│   ├── io/                # File I/O (pluggable readers)
+│   │   └── models/        # STL, OBJ readers (3MF partial)
+│   ├── rendering/         # Hardware-accelerated rendering
+│   │   ├── MeshRenderer   # 3D mesh + layer visualization
 │   │   └── Camera         # Orbit camera controller
-│   └── ui/                # Qt UI
+│   └── ui/                # Qt UI layer
 │       └── MainWindow     # Main application window
 └── third_party/
-    └── tinyxml2/          # XML parsing (3MF support)
+    └── tinyxml2/          # XML parsing (for 3MF support)
 ```
 
 **Design Principles:**
-- **Layered Architecture**: `core → io → rendering → ui`
+- **Layered Architecture**: `core → io → rendering → ui` (strict dependency flow)
 - **Dependency Inversion**: Abstract interfaces, minimal coupling
-- **SOLID Principles**: Single responsibility, open/closed
-- **Modern C++**: Smart pointers, RAII, move semantics
+- **SOLID Principles**: Single responsibility, open/closed for extension
+- **Modern C++17**: Smart pointers, RAII, move semantics, perfect forwarding
+
+
+##  Roadmap
+
+### ✅ Completed (Beta v0.1)
+- [x] Multi-format loading (STL Binary/ASCII, OBJ)
+- [x] Spatial indexing optimization (26x speedup)
+- [x] Real-time layer visualization
+- [x] Mesh analysis & validation
+- [x] Cross-platform build (Windows/Linux/macOS)
+- [x] CI/CD pipeline (GitHub Actions)
+
+###  In Progress (Contact for Custom Development)
+- [ ] **GCode export** (G0/G1 moves, temperature control)
+- [ ] **Infill generation** (lines, grid, honeycomb, gyroid)
+- [ ] **Support structure generation** (auto-detection, tree supports)
+- [ ] **3MF full support** (materials, metadata)
+
+###  Advanced Features (Available on Request)
+- [ ] **Multi-threaded slicing** (OpenMP/TBB)
+- [ ] **GPU acceleration** (CUDA compute shaders)
+- [ ] **SIMD optimization** (AVX2/AVX-512)
+- [ ] **Variable layer height** (adaptive slicing)
+- [ ] **Cloud API** (REST endpoints, S3 integration)
+- [ ] **Plugin system** (custom slicer algorithms)
 
 ---
 
-## 🔬 Technical Deep Dive
+##  Performance Benchmarks
 
-### Spatial Indexing Algorithm
+**Test System:** Intel i7-10700K (8C/16T @ 3.8GHz), 32GB DDR4-3200, Windows 10
 
-Traditional slicing: **O(n × m)** - Check every triangle for every layer
+| Model  Format | Triangles | Load (Debug) | Load (Release) | Slice (Naive) | Slice (Indexed) | Speedup |
+|---------------|-----------|--------------|----------------|---------------|-----------------|---------|
+|      OBJ      | 1,471,772 | 2792ms       | 2339ms         | 11,100ms      | 428ms           | **26x** |
+|      STL      | 871,414   | 1580ms       | 1230ms         | 6,850ms       | 312ms           | **22x** |
+|        STL    | 69,451    | 102ms        | 85ms           | 445ms         | 18ms            | **24x** |
+|---------------|-----------|--------------|----------------|---------------|-----------------|---------|
 
-```cpp
-// Naive approach
-for (each layer) {
-    for (each triangle) {  // ← Expensive!
-        if (triangle intersects layer) {
-            extract segment;
-        }
-    }
-}
-```
-
-**Our approach:** Z-indexed bucketing **O(n + m × k)**
-
-```cpp
-// Build spatial index once
-ZIndexedMesh index(mesh, layerHeight);  // O(n)
-
-// Query only relevant triangles per layer
-for (each layer) {
-    auto tris = index.getTrianglesAtZ(z);  // O(1) lookup
-    for (each tri in tris) {  // k << n
-        extract segment;
-    }
-}
-```
-
-**Result:** ~26x speedup on large models!
-
-### Memory Optimization
-
-```cpp
-// Reserve capacity upfront - avoid reallocations
-mesh.reserve(estimatedTriangleCount);
-
-// Move semantics - zero-copy operations
-void addTriangle(Triangle&& triangle) {
-    triangles.push_back(std::move(triangle));
-}
-
-// Emplace back - construct in-place
-triangles.emplace_back(v1, v2, v3, normal);
-```
+*Note: With multi-threading and SIMD, these numbers can be improved 4-8x further. [Contact me](firat13.sd@gmail.com) for custom optimization.*
 
 ---
 
-## 🎯 Roadmap
+##  Contributing
 
-### ✅ Completed
-- [x] Multi-format loading (STL, OBJ, 3MF)
-- [x] Spatial indexing optimization
-- [x] Layer visualization
-- [x] Mesh analysis & repair
+This is a portfolio/demonstration project. Contributions are welcome for:
+-  Bug fixes
+-  Documentation improvements
+-  Test cases
+-  UI/UX enhancements
 
-### 🚧 In Progress
-- [ ] GCode export (G0/G1 moves, temperature control)
-- [ ] Infill generation (lines, grid, honeycomb)
-- [ ] Support structure generation
+For major features (GCode export, GPU acceleration, etc.), please contact me.
 
-### 🔮 Future
-- [ ] Multi-threaded slicing (OpenMP)
-- [ ] GPU acceleration (Compute shaders)
-- [ ] SIMD optimization (SSE/AVX)
-- [ ] Advanced infill patterns
-- [ ] Variable layer height
-- [ ] Adaptive supports
+
+##  License
+
+This project is licensed under the **MIT License** -
+**TL;DR:** Free to use, modify, and distribute. No warranty provided.
 
 ---
 
-## 📊 Performance Benchmarks
+##  Contact & Custom Development
 
-**Test System:** Intel i7-10700K, 32GB RAM, Windows 10
+**Seken Durmaz**  
+*High-Performance C++ Developer | Embedded System and 3D Graphics Specialist*
 
-| Model | Format | Triangles | Load (Debug) | Load (Release) | Slice (Naive) | Slice (Indexed) | Speedup |
-|-------|--------|-----------|--------------|----------------|---------------|-----------------|---------|
-| Bugatti | OBJ | 1,471,772 | 2792ms | 2339ms | 11,100ms | 428ms | **26x** |
-| Dragon | STL | 871,414 | 1580ms | 1230ms | 6,850ms | 312ms | **22x** |
-| Bunny | STL | 69,451 | 102ms | 85ms | 445ms | 18ms | **24x** |
+###  Need Custom Solutions?
 
----
+I offer professional development services for:
 
-## 🤝 Contributing
+####  **3D Processing & Slicing**
+- Custom slicer algorithms for specialized printers
+- High-throughput batch processing (cloud/server)
+- Integration with existing CAM/CAD pipelines
+- Performance optimization consulting (10x+ improvements)
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+####  **Performance Engineering**
+- Multi-threaded/GPU acceleration (CUDA, OpenCL, Metal)
+- SIMD optimization (AVX2/AVX-512/NEON)
+- Memory optimization & cache profiling
+- Real-time systems (< 16ms frame time)
 
-### Development Setup
-```bash
-# Clone with submodules
-git clone --recursive https://github.com/sekendurmaz/qt-3d-slicer.git
+####  **Feature Development**
+- Additional format support (3MF, AMF, STEP, custom)
+- Advanced infill patterns & path planning
+- Support structure generation (organic, tree)
+- Multi-material & variable layer height
+- Cloud API integration (AWS, Azure, GCP)
 
-# Build debug version
-cmake -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
-```
+####  **Consulting & Training**
+- Algorithm design & code review
+- Performance profiling & bottleneck analysis
+- Modern C++ best practices training
+- Architecture consulting (microservices, plugins)
 
----
+###  Get in Touch
 
-## 📄 License
+**Email:** firat13.sd@gmail.com
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 📬 Contact
-
-**Sami Eken Durmaz**
-
-This is a **beta/portfolio version** demonstrating core algorithms and modern C++ techniques. 
-
-**🚀 For production-ready, enterprise-grade solutions with:**
-- Advanced path planning algorithms
-- Multi-material support
-- Cloud integration
-- Custom feature development
-- Performance consulting
-
-**Please contact me:**
-
-- 📧 Email: [your.email@example.com](mailto:your.email@example.com)
-- 💼 LinkedIn: [linkedin.com/in/yourprofile](https://linkedin.com/in/yourprofile)
-- 🌐 Portfolio: [yourwebsite.com](https://yourwebsite.com)
-- 📱 GitHub: [@sekendurmaz](https://github.com/sekendurmaz)
+**Response Time:** Usually within 24 hours on business days.
 
 ---
 
-## 🙏 Acknowledgments
-
-- **Qt Framework**: Cross-platform UI framework
-- **tinyxml2**: Lightweight XML parsing library
-- **Test Models**: Various open-source 3D models from Thingiverse
-
----
-
-## ⭐ Star History
-
-If you find this project useful, please consider giving it a star! ⭐
-
-[![Star History Chart](https://api.star-history.com/svg?repos=sekendurmaz/qt-3d-slicer&type=Date)](https://star-history.com/#sekendurmaz/qt-3d-slicer&Date)
-
----
-
-<p align="center">
-  <b>Made with ❤️ and modern C++</b><br>
-  <sub>© 2025 Sami Eken Durmaz. All rights reserved.</sub>
-</p>

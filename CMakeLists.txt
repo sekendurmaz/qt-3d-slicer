@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(MyQtApp
+project(Qt3DSlicer
     VERSION 0.1.0
     DESCRIPTION "Qt-based 3D slicer tooling"
     LANGUAGES CXX C       # ← C ekle!
