@@ -68,6 +68,9 @@ core::mesh::Mesh StlReader::readBinary(const std::string& filepath)
     uint32_t triangleCount = 0;
     file.read(reinterpret_cast<char*>(&triangleCount), sizeof(uint32_t));
 
+    // ⭐ PERFORMANS: Tam triangle sayısını biliyoruz, reserve et!
+    mesh.reserve(triangleCount);
+
     // Triangle'ları oku
     for (uint32_t i = 0; i < triangleCount; ++i)
     {

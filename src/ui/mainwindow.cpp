@@ -190,11 +190,23 @@ void MainWindow::onLoadModel()
     }
 
     qDebug() << "Loading:" << fileName;
+
     statusBar()->showMessage("Loading model...");
+
+    // ⏱️ TIMER BAŞLAT
+    auto startTime = std::chrono::high_resolution_clock::now();
 
     try {
         // Load mesh
         currentMesh_ = io::models::ModelFactory::loadModel(fileName.toStdString());
+
+        // ⏱️ TIMER BİTİR
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              endTime - startTime
+                              ).count();
+
+        qDebug() << "⏱️  Load time:" << durationMs << "ms";
 
         // Render mesh
         meshRenderer_->setMesh(currentMesh_);
@@ -453,7 +465,7 @@ void MainWindow::onSliceMesh()
 
     // Settings
     core::slicing::SlicingSettings settings;
-    settings.layerHeight = 0.2f;  // veya UI'dan al
+    settings.layerHeight = 0.2f;
     settings.useSpatialIndex = true;
 
     qDebug() << "\n⚙️  Slicing Settings:";
@@ -486,20 +498,52 @@ void MainWindow::onSliceMesh()
         qDebug() << "   Time:" << durationMs << "ms";
         qDebug() << "   Speed:" << (slicingResult_.layers.size() * 1000.0 / durationMs) << "layers/sec";
 
-        // Throughput hesapla
         double totalOps = static_cast<double>(currentMesh_.triangles.size()) * slicingResult_.layers.size();
         double opsPerSec = totalOps / (durationMs / 1000.0);
         qDebug() << "   Throughput:" << static_cast<long long>(opsPerSec) << "triangle-checks/sec";
+
+        // ⭐ UI UPDATE - EKLE!
+        // Enable layer controls
+        btnShowLayers_->setEnabled(true);
+        sliderLayer_->setEnabled(true);
+        sliderLayer_->setMaximum(slicingResult_.layers.size() - 1);
+        sliderLayer_->setValue(0);
+
+        // Update layer count label
+        labelLayerCount_->setText(QString("Layers: %1").arg(slicingResult_.layers.size()));
+
+        // Update status bar
+        statusBar()->showMessage(QString("✅ Slicing complete: %1 layers, %2 segments in %3 ms")
+                                     .arg(slicingResult_.layers.size())
+                                     .arg(slicingResult_.totalSegments)
+                                     .arg(durationMs));
+
+        // Show success message
+        QMessageBox::information(this, "Slicing Complete",
+                                 QString("✅ Slicing successful!\n\n"
+                                         "Layers: %1\n"
+                                         "Segments: %2\n"
+                                         "Time: %3 ms\n"
+                                         "Speed: %4 layers/sec\n\n"
+                                         "Click 'Show Layers' to visualize.")
+                                     .arg(slicingResult_.layers.size())
+                                     .arg(slicingResult_.totalSegments)
+                                     .arg(durationMs)
+                                     .arg(slicingResult_.layers.size() * 1000.0 / durationMs, 0, 'f', 1));
     }
     else
     {
         qDebug() << "   Status: ❌ FAILED";
         qDebug() << "   Error:" << QString::fromStdString(slicingResult_.errorMessage);
+
+        // ⭐ ERROR HANDLING - EKLE!
+        statusBar()->showMessage("❌ Slicing failed!");
+        QMessageBox::critical(this, "Slicing Failed",
+                              QString("Slicing failed:\n\n%1")
+                                  .arg(QString::fromStdString(slicingResult_.errorMessage)));
     }
 
     qDebug() << "========================================\n";
-
-    // UI update (existing code)...
 }
 
 void MainWindow::onShowLayers()

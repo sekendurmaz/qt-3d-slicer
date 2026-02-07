@@ -22,6 +22,12 @@ core::mesh::Mesh ObjReader::read(const std::string& filepath)
     std::vector<core::geometry::Vec3> vertices;
     std::vector<core::geometry::Vec3> normals;
 
+    // ⭐ SINGLE PASS: Big reserve upfront
+    // Conservative estimates for large models (Bugatti scale)
+    vertices.reserve(1000000);    // 1M vertices
+    normals.reserve(1000000);     // 1M normals
+    mesh.reserve(2000000);        // 2M triangles (conservative for quads)
+
     std::string line;
     while (std::getline(file, line))
     {
@@ -51,6 +57,11 @@ core::mesh::Mesh ObjReader::read(const std::string& filepath)
         }
         // vt (texture), mtllib, usemtl vs. şimdilik ignore et
     }
+
+    // ⭐ SHRINK: Fazla belleği temizle
+    vertices.shrink_to_fit();
+    normals.shrink_to_fit();
+    mesh.shrink_to_fit();
 
     return mesh;
 }
