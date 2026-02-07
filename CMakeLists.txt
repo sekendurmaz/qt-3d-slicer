@@ -17,7 +17,7 @@ set(CMAKE_AUTOUIC ON)
 # Find ZLIB
 find_package(ZLIB REQUIRED)
 
-# Qt paketlerini bul
+# Find Qt packages
 find_package(Qt6 6.4 REQUIRED COMPONENTS
     Core
     Widgets

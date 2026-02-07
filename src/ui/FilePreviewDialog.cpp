@@ -166,6 +166,10 @@ void FilePreviewDialog::updatePreview(const QString &filePath)
     labelFileName_->setText(fileInfo.fileName());
     labelFileSize_->setText(QString("Size: %1 KB").arg(fileInfo.size() / 1024.0, 0, 'f', 2));
     
+    // Note: For large models (100k+ triangles), this synchronous loading can freeze the UI.
+    // TODO: Implement asynchronous loading with QFuture/QtConcurrent and a loading indicator
+    // to improve responsiveness for large files.
+    
     try {
         // Load mesh
         previewMesh_ = io::models::ModelFactory::loadModel(filePath.toStdString());
