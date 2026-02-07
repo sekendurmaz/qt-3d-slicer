@@ -7,7 +7,6 @@ on:
     branches: [ main ]
 
 env:
-  QT_VERSION: 6.7.2
   BUILD_TYPE: Release
 
 jobs:
@@ -20,13 +19,13 @@ jobs:
       matrix:
         include:
           - os: windows-latest
+            qt_version: 6.7.2
             qt_arch: win64_msvc2019_64
             cmake_generator: "Visual Studio 17 2022"
             cmake_arch: x64
             artifact_name: Windows-MSVC
 
           - os: ubuntu-latest
-            qt_arch: gcc_64
             cmake_generator: "Ninja"
             artifact_name: Linux
 
@@ -35,26 +34,25 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install Qt
+    # Windows: Install Qt via aqt
+    - name: Install Qt (Windows)
+      if: runner.os == 'Windows'
       uses: jurplel/install-qt-action@v4
       with:
-        version: ${{ env.QT_VERSION }}
+        version: ${{ matrix.qt_version }}
         arch: ${{ matrix.qt_arch }}
         cache: true
 
-    # Windows specific
-    - name: Setup MSVC (Windows)
-      if: runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
-
-    # Linux specific
-    - name: Install Dependencies (Linux)
+    # Linux: Install Qt via apt
+    - name: Install Qt and Dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y \
+          qt6-base-dev \
+          qt6-base-dev-tools \
+          libqt6opengl6-dev \
+          libqt6openglwidgets6 \
           libgl1-mesa-dev \
           libglu1-mesa-dev \
           libxkbcommon-x11-0 \
@@ -65,6 +63,13 @@ jobs:
           libxcb-xinerama0 \
           libxcb-cursor0 \
           ninja-build
+
+    # Windows specific
+    - name: Setup MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
 
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
@@ -77,8 +82,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         cmake -B build -G "${{ matrix.cmake_generator }}" \
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-          -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
     - name: Build
       run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 4
@@ -97,18 +101,19 @@ jobs:
       run: |
         mkdir -p package/lib
         cp build/src/MyQtApp package/
-        cp -r ${{ env.Qt6_DIR }}/lib/libQt6*.so* package/lib/
-        cp -r ${{ env.Qt6_DIR }}/plugins package/
+
+        # Copy Qt libraries
+        ldd build/src/MyQtApp | grep "Qt6" | awk '{print $3}' | xargs -I {} cp {} package/lib/ || true
 
         # Create run script
         cat > package/run.sh << 'EOF'
         #!/bin/bash
         DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
-        export QT_PLUGIN_PATH="$DIR/plugins"
         "$DIR/MyQtApp" "$@"
         EOF
         chmod +x package/run.sh
+        chmod +x package/MyQtApp
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
