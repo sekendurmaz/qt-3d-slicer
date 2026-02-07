@@ -12,8 +12,17 @@ target_link_libraries(rendering_lib
         Qt6::Gui
         Qt6::OpenGL
         Qt6::OpenGLWidgets
-        opengl32        # ← EKLE! (Windows OpenGL library)
+        # opengl32        # ← EKLE! (Windows OpenGL library)
 )
+
+# Platform-specific OpenGL linking
+if(WIN32)
+    target_link_libraries(rendering_lib PUBLIC opengl32)
+elseif(UNIX AND NOT APPLE)
+    target_link_libraries(rendering_lib PUBLIC GL)
+elseif(APPLE)
+    target_link_libraries(rendering_lib PUBLIC "-framework OpenGL")
+endif()
 
 target_include_directories(rendering_lib
     PUBLIC
