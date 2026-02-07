@@ -1,0 +1,13 @@
+core_lib_autogen/timestamp: \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/CMakeLists.txt \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/mesh/MeshAnalyzer.cpp \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/mesh/MeshAnalyzer.h \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/mesh/MeshRepairer.cpp \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/mesh/MeshRepairer.h \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/mesh/MeshValidator.cpp \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/mesh/MeshValidator.h \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/mesh/NormalProcessor.cpp \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/mesh/NormalProcessor.h \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/mesh/mesh.cpp \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/core/mesh/mesh.h \
+	/usr/local/bin/cmake

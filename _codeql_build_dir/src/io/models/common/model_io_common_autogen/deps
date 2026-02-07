@@ -1,0 +1,5 @@
+model_io_common_autogen/timestamp: \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/io/models/common/CMakeLists.txt \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/io/models/common/ModelFactory.cpp \
+	/home/runner/work/qt-3d-slicer/qt-3d-slicer/src/io/models/common/ModelFactory.h \
+	/usr/local/bin/cmake
