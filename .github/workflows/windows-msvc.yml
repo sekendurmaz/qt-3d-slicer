@@ -1,4 +1,4 @@
-name: Cross-Platform Build (Windows & Linux)
+name: Cross-Platform Build (Windows, Linux & macOS)
 
 on:
   push:
@@ -29,14 +29,20 @@ jobs:
             cmake_generator: "Ninja"
             artifact_name: Linux
 
+          - os: macos-latest
+            qt_version: 6.7.2
+            qt_arch: clang_64
+            cmake_generator: "Ninja"
+            artifact_name: macOS
+
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
 
-    # Windows: Install Qt via aqt
-    - name: Install Qt (Windows)
-      if: runner.os == 'Windows'
+    # Windows & macOS: Install Qt via aqt
+    - name: Install Qt (Windows/macOS)
+      if: runner.os == 'Windows' || runner.os == 'macOS'
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ matrix.qt_version }}
@@ -64,6 +70,11 @@ jobs:
           libxcb-cursor0 \
           ninja-build
 
+    # macOS: Install Ninja
+    - name: Install Ninja (macOS)
+      if: runner.os == 'macOS'
+      run: brew install ninja
+
     # Windows specific
     - name: Setup MSVC (Windows)
       if: runner.os == 'Windows'
@@ -83,6 +94,13 @@ jobs:
       run: |
         cmake -B build -G "${{ matrix.cmake_generator }}" \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+    - name: Configure CMake (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        cmake -B build -G "${{ matrix.cmake_generator }}" \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_PREFIX_PATH=${{ env.Qt6_DIR }}
 
     - name: Build
       run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 4
@@ -113,6 +131,15 @@ jobs:
         "$DIR/MyQtApp" "$@"
         EOF
         chmod +x package/run.sh
+        chmod +x package/MyQtApp
+
+    # macOS packaging
+    - name: Package (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        mkdir -p package
+        cp build/src/MyQtApp package/
+        macdeployqt package/MyQtApp -always-overwrite || true
         chmod +x package/MyQtApp
 
     - name: Upload Artifact
