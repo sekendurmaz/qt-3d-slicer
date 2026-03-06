@@ -8,6 +8,7 @@
 #include <QMatrix4x4>
 #include <QMouseEvent>
 #include <QWheelEvent>
+#include "core/buildplate/BuildPlate.h"
 
 #include "core/mesh/mesh.h"
 #include "core/slicing/Layer.h"  // ← YENİ!
@@ -38,6 +39,10 @@ public:
     void setLayers(const std::vector<core::slicing::Layer>& layers);
     void setCurrentLayer(int layerIndex);  // -1 = show all
     void clearLayers();
+
+    void setBuildPlate(std::shared_ptr<core::buildplate::BuildPlate> plate);
+    void clearBuildPlate();
+    void resetCamera();
 
 protected:
     void initializeGL() override;
@@ -83,6 +88,14 @@ private:
     void buildLayerBuffer();  // ← YENİ!
     void createShaders();
     void createLayerShaders();  // ← YENİ!
+
+    std::shared_ptr<core::buildplate::BuildPlate> buildPlate_;
+    QOpenGLBuffer buildPlateVBO_;
+    QOpenGLVertexArrayObject buildPlateVAO_;
+    int buildPlateVertexCount_ = 0;
+    // Rendering helpers - YENİ!
+    void renderBuildPlate();
+    void setupBuildPlateBuffers();
 };
 
 } // namespace rendering

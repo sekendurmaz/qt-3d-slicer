@@ -1,5 +1,6 @@
 # Core subdirectories
-add_subdirectory(slicing)  # ← YENİ EKLE
+add_subdirectory(slicing)
+add_subdirectory(buildplate)
 
 # Core library
 add_library(core_lib STATIC
@@ -8,6 +9,7 @@ add_library(core_lib STATIC
     mesh/MeshAnalyzer.cpp
     mesh/NormalProcessor.cpp
     mesh/MeshRepairer.cpp
+    buildplate/CircularPlate.cpp
 
 
 

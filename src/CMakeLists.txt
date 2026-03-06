@@ -7,6 +7,7 @@ add_subdirectory(ui)
 # Main executable
 add_executable(${PROJECT_NAME}
     main.cpp
+    io/loading/SyncLoadingStrategy.cpp
 )
 
 # Link libraries (✅ SIRAYA DİKKAT!)

@@ -1,8 +1,12 @@
 #pragma once
 
 #include <QMainWindow>
+#include <memory>
 #include "core/mesh/mesh.h"
-#include "core/slicing/Slicer.h"  // ← SlicingResult için
+#include "core/slicing/Slicer.h"
+#include "io/loading/ILoadingStrategy.h"
+#include "io/loading/AsyncLoadingStrategy.h"
+#include "core/buildplate/BuildPlate.h"
 
 // Forward declarations
 namespace rendering {
@@ -11,7 +15,7 @@ class MeshRenderer;
 
 class QPushButton;
 class QLabel;
-class QSlider;  // ← YENİ!
+class QSlider;
 
 class MainWindow : public QMainWindow
 {
@@ -23,6 +27,7 @@ public:
 
 private slots:
     void onLoadModel();
+    void onLoadModelAsync();
     void onWireframe();
     void onSolid();
     void onResetView();
@@ -37,8 +42,12 @@ private slots:
 
     // Slicing
     void onSliceMesh();
-    void onShowLayers();        // ← YENİ!
-    void onLayerChanged(int);   // ← YENİ! (slider)
+    void onShowLayers();
+    void onLayerChanged(int);
+
+    // Cached loading - YENİ! ← SADECE BUNLARI EKLEDİK
+    void onLoadModelCachedSync();
+    void onLoadModelCachedAsync();
 
 private:
     // UI components
@@ -58,9 +67,9 @@ private:
 
     // Slice buttons
     QPushButton* btnSliceMesh_;
-    QPushButton* btnShowLayers_;  // ← YENİ!
+    QPushButton* btnShowLayers_;
 
-    // Layer slider ← YENİ!
+    // Layer slider
     QSlider* sliderLayer_;
     QLabel* labelCurrentLayer_;
 
@@ -71,8 +80,16 @@ private:
 
     // Current data
     core::mesh::Mesh currentMesh_;
-    core::slicing::SlicingResult slicingResult_;  // ← YENİ! Slicing sonuçları
+    core::slicing::SlicingResult slicingResult_;
+
+    // Loading strategies
+    std::unique_ptr<io::loading::ILoadingStrategy> m_loadingStrategy;
+    std::unique_ptr<io::loading::ILoadingStrategy> m_cachedSyncStrategy;
+    std::unique_ptr<io::loading::ILoadingStrategy> m_cachedAsyncStrategy;
+    std::unique_ptr<io::loading::AsyncLoadingStrategy> m_activeAsyncStrategy;
+    std::shared_ptr<core::buildplate::BuildPlate> currentPlate_;
 
     // Helper
     void updateMeshInfo();
+    void onPlateCreated(std::shared_ptr<core::buildplate::BuildPlate> plate);
 };

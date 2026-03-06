@@ -4,6 +4,8 @@
 # Model IO (STL, OBJ, 3MF readers)
 add_subdirectory(models)
 
+add_subdirectory(loading)
+
 # G-code IO (future)
 # add_subdirectory(g_code)
 
@@ -16,6 +18,7 @@ add_library(io_lib INTERFACE)
 target_link_libraries(io_lib 
     INTERFACE 
         model_io      # models'ten gelen interface library
+        loading_strategies
         # gcode_io    # İleride eklenecek
         # config_io   # İleride eklenecek
 )

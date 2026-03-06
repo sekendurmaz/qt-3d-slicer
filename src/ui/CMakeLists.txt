@@ -2,7 +2,16 @@ add_library(ui_lib STATIC
     mainwindow.h
     mainwindow.cpp
 
+    widgets/BuildPlatePanel.h      # ← YENİ!
+        widgets/BuildPlatePanel.cpp    # ← YENİ!
 
+
+
+)
+
+set_target_properties(ui_lib PROPERTIES
+    AUTOMOC ON
+    AUTOUIC ON
 )
 
 target_link_libraries(ui_lib
@@ -14,7 +23,9 @@ target_link_libraries(ui_lib
         Qt6::OpenGLWidgets   # ← OpenGLWidgets ekle
         io_lib
         rendering_lib
-        core_slicing      # ← YENİ EKLE!
+        core_slicing
+        buildplate
+
 )
 
 target_include_directories(ui_lib

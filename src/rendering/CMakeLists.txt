@@ -12,6 +12,7 @@ target_link_libraries(rendering_lib
         Qt6::Gui
         Qt6::OpenGL
         Qt6::OpenGLWidgets
+        buildplate
         # opengl32        # ← EKLE! (Windows OpenGL library)
 )
 
