@@ -465,7 +465,7 @@ void MainWindow::onSliceMesh()
 
     // Settings
     core::slicing::SlicingSettings settings;
-    settings.layerHeight = 0.2f;
+    settings.layerHeight = 0.03f;
     settings.useSpatialIndex = true;
 
     qDebug() << "\n⚙️  Slicing Settings:";
