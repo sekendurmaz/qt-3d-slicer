@@ -1,17 +1,23 @@
 #include "MeshRenderer.h"
 #include "core/slicing/Layer.h"
 #include <QVector3D>
-#include "core/buildplate/RectangularPlate.h"
+//#include "core/buildplate/RectangularPlate.h"
 #include "core/buildplate/CircularPlate.h"
 #include <cmath>
 #include <chrono>
+#include <QPainter>
 
 namespace rendering {
 
 MeshRenderer::MeshRenderer(QWidget* parent)
     : QOpenGLWidget(parent)
     , vbo_(QOpenGLBuffer::VertexBuffer)
-    , layerVbo_(QOpenGLBuffer::VertexBuffer)  // ← YENİ!
+    , layerVbo_(QOpenGLBuffer::VertexBuffer)
+    , modelTranslation_(0.0f, 0.0f, 0.0f)
+    , modelRotation_(0.0f, 0.0f, 0.0f)
+    , activeGizmoAxis_(GizmoAxis::None)
+    , isDraggingGizmo_(false)
+    , isRotatingCamera_(false)
 {
     // Enable mouse tracking
     setMouseTracking(true);
@@ -75,6 +81,14 @@ void MeshRenderer::initializeGL()
 
     buildPlateVAO_.create();
     buildPlateVBO_.create();
+
+    gizmo_.initialize();
+    gizmo_.setSize(20.0f);
+    gizmo_.setVisible(false);
+
+    qDebug() << "✅ Gizmo initialized";
+
+
 }
 
 void MeshRenderer::resizeGL(int w, int h)
@@ -99,23 +113,40 @@ void MeshRenderer::paintGL()
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Render build plate first
-    if (buildPlate_)
-    {
-        renderBuildPlate();
-    }
-
-    QMatrix4x4 model;
+    // Camera matrices
     QMatrix4x4 view = camera_.viewMatrix();
     QMatrix4x4 projection = camera_.projectionMatrix(
         static_cast<float>(width()) / static_cast<float>(height())
         );
 
-    // Render layers (if layer mode)
+    // ============================================
+    // 1. BUILD PLATE (SABİT - NO TRANSFORM!) ← DEĞİŞTİ!
+    // ============================================
+    if (buildPlate_)
+    {
+        QMatrix4x4 plateModel;  // Identity matrix (transform YOK!)
+
+        // Build plate shader'ı varsa kullan
+        // Yoksa renderBuildPlate() kendi shader'ını kullanır
+        renderBuildPlate();  // Bu fonksiyon kendi shader'ını handle ediyor olabilir
+    }
+
+    // Model transform matrix ← YENİ!
+    QMatrix4x4 model;
+    model.translate(modelTranslation_);
+
+    // 3 EKSEN ROTASYON! ← YENİ!
+    model.rotate(modelRotation_.z(), 0, 0, 1);  // Z rotation
+    model.rotate(modelRotation_.y(), 0, 1, 0);  // Y rotation
+    model.rotate(modelRotation_.x(), 1, 0, 0);  // X rotation
+
+    // ============================================
+    // 3. LAYERS RENDERING (TRANSFORM UYGULANIR)
+    // ============================================
     if (renderMode_ == RenderMode::Layers && layerVertexCount_ > 0)
     {
         layerShaderProgram_->bind();
-        layerShaderProgram_->setUniformValue("model", model);
+        layerShaderProgram_->setUniformValue("model", model);  // ← TRANSFORM UYGULANIR
         layerShaderProgram_->setUniformValue("view", view);
         layerShaderProgram_->setUniformValue("projection", projection);
 
@@ -129,13 +160,15 @@ void MeshRenderer::paintGL()
         return;  // Don't render mesh
     }
 
-    // Normal mesh rendering
+    // ============================================
+    // 4. MESH RENDERING (TRANSFORM UYGULANIR)
+    // ============================================
     if (vertexCount_ == 0)
         return;
 
     shaderProgram_->bind();
 
-    shaderProgram_->setUniformValue("model", model);
+    shaderProgram_->setUniformValue("model", model);  // ← TRANSFORM UYGULANIR
     shaderProgram_->setUniformValue("view", view);
     shaderProgram_->setUniformValue("projection", projection);
     shaderProgram_->setUniformValue("lightDir", QVector3D(0.5f, 1.0f, 0.3f).normalized());
@@ -166,44 +199,21 @@ void MeshRenderer::paintGL()
 
     vao_.release();
     shaderProgram_->release();
-}
 
-void MeshRenderer::mousePressEvent(QMouseEvent* event)
-{
-    lastMousePos_ = event->pos();
-
-    if (event->button() == Qt::LeftButton)
+    // ============================================
+    // GIZMO RENDERING (EN SON!) ← EKLE!
+    // ============================================
+    if (gizmo_.isVisible())
     {
-        isRotating_ = true;
+        gizmo_.render(view, projection, shaderProgram_);
     }
 }
 
-void MeshRenderer::mouseMoveEvent(QMouseEvent* event)
-{
-    int dx = event->pos().x() - lastMousePos_.x();
-    int dy = event->pos().y() - lastMousePos_.y();
 
-    if (isRotating_ && (event->buttons() & Qt::LeftButton))
-    {
-        camera_.rotate(dx * 0.5f, -dy * 0.5f);
-        update();
-    }
-    else if (event->buttons() & Qt::MiddleButton)
-    {
-        camera_.pan(-dx, dy);
-        update();
-    }
 
-    lastMousePos_ = event->pos();
-}
 
-void MeshRenderer::mouseReleaseEvent(QMouseEvent* event)
-{
-    if (event->button() == Qt::LeftButton)
-    {
-        isRotating_ = false;
-    }
-}
+
+
 
 void MeshRenderer::wheelEvent(QWheelEvent* event)
 {
@@ -494,15 +504,23 @@ void MeshRenderer::setupBuildPlateBuffers()
         float gridSpacing = buildPlate_->gridSpacing();
 
         // Horizontal lines (along X axis)
-        for (float y = -d/2; y <= d/2; y += gridSpacing)
+        int numLinesY = static_cast<int>(d / gridSpacing) + 1;
+        for (int i = 0; i < numLinesY; ++i)
         {
+            float y = -d/2 + (i * gridSpacing);
+            if (y > d/2 + 0.001f) break;  // Float precision guard
+
             vertices.push_back(-w/2); vertices.push_back(y); vertices.push_back(0.0f);
             vertices.push_back(w/2);  vertices.push_back(y); vertices.push_back(0.0f);
         }
 
         // Vertical lines (along Y axis)
-        for (float x = -w/2; x <= w/2; x += gridSpacing)
+        int numLinesX = static_cast<int>(w / gridSpacing) + 1;
+        for (int i = 0; i < numLinesX; ++i)
         {
+            float x = -w/2 + (i * gridSpacing);
+            if (x > w/2 + 0.001f) break;  // Float precision guard
+
             vertices.push_back(x); vertices.push_back(-d/2); vertices.push_back(0.0f);
             vertices.push_back(x); vertices.push_back(d/2);  vertices.push_back(0.0f);
         }
@@ -584,25 +602,24 @@ void MeshRenderer::renderBuildPlate()
         return;
     }
 
-    // Setup matrices
+    // Setup matrices - BUILD PLATE İÇİN SABİT! ← DEĞİŞTİ!
     QMatrix4x4 model;
-    model.setToIdentity();
-    model.translate(0, 0, 0.01f);
+    model.setToIdentity();  // NO ROTATION, NO TRANSLATION (sadece mesh transform'u)
+    // model.translate(0, 0, 0.01f);  // ← KALDIR! (Z-fighting için gereksiz)
 
     float aspect = width() / static_cast<float>(height());
 
-    shaderProgram_->setUniformValue("model", model);
+    shaderProgram_->setUniformValue("model", model);  // ← Identity matrix
     shaderProgram_->setUniformValue("view", camera_.viewMatrix());
     shaderProgram_->setUniformValue("projection", camera_.projectionMatrix(aspect));
-    shaderProgram_->setUniformValue("meshColor", QVector3D(0.0f, 0.8f, 0.0f));
+    shaderProgram_->setUniformValue("meshColor", QVector3D(0.3f, 0.3f, 0.3f));  // ← Gri yap (yeşil kafa karıştırıcı)
 
     // Draw grid
     buildPlateVAO_.bind();
-    glLineWidth(2.0f);
-
-
+    glLineWidth(1.5f);  // ← Biraz ince
 
     glDrawArrays(GL_LINES, 0, buildPlateVertexCount_);
+
     buildPlateVAO_.release();
     shaderProgram_->release();
 
@@ -623,5 +640,297 @@ void MeshRenderer::resetCamera()
     camera_.reset();
     update();
 }
+void MeshRenderer::setModelTranslation(float x, float y, float z)
+{
+    modelTranslation_ = QVector3D(x, y, z);
+    gizmo_.setPosition(modelTranslation_);
+    update();
+}
 
+void MeshRenderer::setModelRotation(float x, float y, float z)
+{
+    modelRotation_ = QVector3D(x, y, z);
+    update();
+}
+
+void MeshRenderer::resetModelTransform()
+{
+    modelTranslation_ = QVector3D(0.0f, 0.0f, 0.0f);
+    modelRotation_ = QVector3D(0, 0, 0);
+    update();
+    qDebug() << "🔄 Transform reset";
+}
+
+void MeshRenderer::centerModel(const core::mesh::Mesh& mesh)
+{
+    if (mesh.triangles.empty())
+        return;
+
+    float minX = FLT_MAX, maxX = -FLT_MAX;
+    float minY = FLT_MAX, maxY = -FLT_MAX;
+
+    // Calculate bounds
+    for (const auto& tri : mesh.triangles)
+    {
+        // vertex1, vertex2, vertex3 kullan ← DOĞRU HAL!
+        minX = std::min({minX, tri.vertex1.x, tri.vertex2.x, tri.vertex3.x});
+        maxX = std::max({maxX, tri.vertex1.x, tri.vertex2.x, tri.vertex3.x});
+        minY = std::min({minY, tri.vertex1.y, tri.vertex2.y, tri.vertex3.y});
+        maxY = std::max({maxY, tri.vertex1.y, tri.vertex2.y, tri.vertex3.y});
+    }
+
+    float centerX = (minX + maxX) / 2.0f;
+    float centerY = (minY + maxY) / 2.0f;
+
+    modelTranslation_.setX(-centerX);
+    modelTranslation_.setY(-centerY);
+
+    update();
+    qDebug() << "📍 Model centered at:" << -centerX << "," << -centerY;
+}
+
+void MeshRenderer::mousePressEvent(QMouseEvent* event)
+{
+    lastMousePos_ = event->pos();
+
+    if (event->button() == Qt::LeftButton)
+    {
+        // Gizmo kontrolü
+        if (gizmo_.isVisible())
+        {
+            QMatrix4x4 view = camera_.viewMatrix();
+            QMatrix4x4 projection = camera_.projectionMatrix(
+                static_cast<float>(width()) / static_cast<float>(height())
+                );
+
+            activeGizmoAxis_ = gizmo_.hitTest(
+                QVector2D(event->pos()),  // ← QPoint → QVector2D dönüşümü
+                view,
+                projection,
+                width(),
+                height()
+                );
+
+            if (activeGizmoAxis_ != GizmoAxis::None)
+            {
+                // Gizmo oka tıklandı!
+                isDraggingGizmo_ = true;
+
+                // startDrag() - 6 PARAMETRE! ← DÜZELT!
+                gizmo_.startDrag(
+                    activeGizmoAxis_,
+                    QVector2D(event->pos()),  // ← QPoint → QVector2D
+                    view,                     // ← EKLE!
+                    projection,               // ← EKLE!
+                    width(),                  // ← EKLE!
+                    height()                  // ← EKLE!
+                    );
+
+                // Debug: Hangi eksen seçildi?
+                if (activeGizmoAxis_ == GizmoAxis::X) {
+                    qDebug() << "🔴 X axis selected!";
+                } else if (activeGizmoAxis_ == GizmoAxis::Y) {
+                    qDebug() << "🟢 Y axis selected!";
+                } else if (activeGizmoAxis_ == GizmoAxis::Z) {
+                    qDebug() << "🔵 Z axis selected!";
+                } else if (activeGizmoAxis_ == GizmoAxis::XY) {
+                    qDebug() << "🟡 XY center selected!";
+                }
+
+                return;
+            }
+        }
+
+        // Mesh seçimi
+        if (vertexCount_ > 0)
+        {
+            setMeshSelected(true);
+            qDebug() << "✅ Mesh selected!";
+            update();
+            return;
+        }
+        else
+        {
+            // Boşa tıklandı
+            setMeshSelected(false);
+            update();
+        }
+    }
+
+    // Kamera rotasyonu (right click)
+    if (event->button() == Qt::RightButton)
+    {
+        isRotatingCamera_ = true;
+    }
+}
+void MeshRenderer::mouseMoveEvent(QMouseEvent* event)
+{
+    QPoint delta = event->pos() - lastMousePos_;
+
+    if (isDraggingGizmo_)
+    {
+
+
+        // Gizmo ile mesh hareket ettir
+        QMatrix4x4 view = camera_.viewMatrix();
+        QMatrix4x4 projection = camera_.projectionMatrix(
+            static_cast<float>(width()) / static_cast<float>(height())
+            );
+
+
+
+        QVector3D movement = gizmo_.updateDrag(
+            QVector2D(event->pos()),
+            view,
+            projection,
+            width(),
+            height()
+            );
+
+
+
+        modelTranslation_ += movement;
+        gizmo_.setPosition(modelTranslation_);
+
+
+
+
+        try {
+            emit modelTransformed(modelTranslation_, modelRotation_);
+
+        } catch (...) {
+            qDebug() << "❌ EXCEPTION in emit!";
+        }
+
+        lastMousePos_ = event->pos();
+        update();
+        return;
+    }
+
+    if (isRotatingCamera_)
+    {
+        // Kamera döndür
+        float sensitivity = 0.5f;
+        camera_.rotate(delta.x() * sensitivity, delta.y() * sensitivity);
+
+        lastMousePos_ = event->pos();
+        update();
+    }
+}
+
+void MeshRenderer::mouseReleaseEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::LeftButton)
+    {
+        isDraggingGizmo_ = false;
+        activeGizmoAxis_ = GizmoAxis::None;
+    }
+
+    if (event->button() == Qt::RightButton)
+    {
+        isRotatingCamera_ = false;
+    }
+}
+
+void MeshRenderer::setMeshSelected(bool selected)
+{
+    meshSelected_ = selected;
+    gizmo_.setVisible(selected);
+
+    if (selected)
+    {
+        // Gizmo'yu mesh pozisyonuna yerleştir
+        gizmo_.setPosition(modelTranslation_);
+        qDebug() << "🎯 Gizmo positioned at:" << modelTranslation_;
+    }
+}
+
+void MeshRenderer::paintEvent(QPaintEvent* event)
+{
+    // 3D render
+    QOpenGLWidget::paintEvent(event);
+
+    // 2D Gizmo overlay
+    if (gizmo_.isVisible())
+    {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        // Gizmo pozisyonunu ekran koordinatlarına çevir
+        QMatrix4x4 view = camera_.viewMatrix();
+        QMatrix4x4 projection = camera_.projectionMatrix(
+            static_cast<float>(width()) / static_cast<float>(height())
+            );
+
+        QMatrix4x4 mvp = projection * view;
+        QVector4D clipPos = mvp * QVector4D(gizmo_.position(), 1.0f);
+
+        if (clipPos.w() <= 0.0f)
+            return;
+
+        QVector3D ndc = clipPos.toVector3D() / clipPos.w();
+
+        float screenX = (ndc.x() + 1.0f) * 0.5f * width();
+        float screenY = (1.0f - ndc.y()) * 0.5f * height();
+
+        QPointF center(screenX, screenY);
+
+        // ==================== X AXIS (KIRMIZI → SAĞA) ====================
+        painter.setPen(QPen(Qt::red, 4));
+        painter.drawLine(center, center + QPointF(60, 0));
+        painter.setBrush(Qt::red);
+        QPolygonF arrowX;
+        arrowX << (center + QPointF(60, 0))
+               << (center + QPointF(52, -6))
+               << (center + QPointF(52, 6));
+        painter.drawPolygon(arrowX);
+
+        // X Label
+        painter.setPen(Qt::red);
+        painter.setFont(QFont("Arial", 12, QFont::Bold));
+        painter.drawText(center + QPointF(65, 5), "X");
+
+        // ==================== Y AXIS (YEŞİL ↑ YUKARI) ====================
+        painter.setPen(QPen(Qt::green, 4));
+        painter.drawLine(center, center + QPointF(0, -60));
+        painter.setBrush(Qt::green);
+        QPolygonF arrowY;
+        arrowY << (center + QPointF(0, -60))
+               << (center + QPointF(-6, -52))
+               << (center + QPointF(6, -52));
+        painter.drawPolygon(arrowY);
+
+        // Y Label
+        painter.setPen(Qt::green);
+        painter.drawText(center + QPointF(5, -65), "Y");
+
+        // ==================== Z AXIS (MAVİ ↗ ÇAPRAZ) ← YENİ! ====================
+        painter.setPen(QPen(Qt::blue, 4));
+        QPointF zEnd = center + QPointF(80, -30);  // Sağ üst çapraz
+        painter.drawLine(center, zEnd);
+        painter.setBrush(Qt::blue);
+
+        // Mavi ok ucu
+        QPolygonF arrowZ;
+        arrowZ << zEnd
+               << (zEnd + QPointF(-8, 2))   // Sol alt
+               << (zEnd + QPointF(-4, -6)); // Üst
+        painter.drawPolygon(arrowZ);
+
+        // Z Label
+        painter.setPen(Qt::blue);
+        painter.setFont(QFont("Arial", 12, QFont::Bold));
+        painter.drawText(zEnd + QPointF(8, 5), "Z");
+
+        // ==================== MERKEZ (SARI ●) ====================
+        painter.setPen(QPen(Qt::yellow, 2));
+        painter.setBrush(Qt::yellow);
+        painter.drawEllipse(center, 10, 10);
+
+        // Merkez Label
+        painter.setPen(Qt::white);
+        painter.setFont(QFont("Arial", 10, QFont::Bold));
+        painter.drawText(center + QPointF(-5, -15), "XY");
+    }
+}
 } // namespace rendering

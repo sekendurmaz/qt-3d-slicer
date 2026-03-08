@@ -7,6 +7,8 @@
 #include "io/loading/ILoadingStrategy.h"
 #include "io/loading/AsyncLoadingStrategy.h"
 #include "core/buildplate/BuildPlate.h"
+#include <QDoubleSpinBox>
+#include <QVector3D>
 
 // Forward declarations
 namespace rendering {
@@ -31,6 +33,7 @@ private slots:
     void onWireframe();
     void onSolid();
     void onResetView();
+    void onExportLayers();
 
     // Normal Processing
     void onRecalculateNormals();
@@ -49,6 +52,20 @@ private slots:
     void onLoadModelCachedSync();
     void onLoadModelCachedAsync();
 
+    // Transform controls ← YENİ!
+    void onMoveXChanged(double value);
+    void onMoveYChanged(double value);
+    void onMoveZChanged(double value);
+    void onRotateXChanged(double value);
+    void onRotateYChanged(double value);
+    void onRotateZChanged(double value);
+    void onResetTransform();
+    void onCenterModel();
+
+    void onModelTransformedByGizmo(QVector3D translation, QVector3D rotationZ);
+
+
+
 private:
     // UI components
     rendering::MeshRenderer* meshRenderer_;
@@ -56,6 +73,7 @@ private:
     QPushButton* btnWireframe_;
     QPushButton* btnSolid_;
     QPushButton* btnReset_;
+    QPushButton* btnExportLayers_;
 
     // Normal buttons
     QPushButton* btnRecalcNormals_;
@@ -89,7 +107,22 @@ private:
     std::unique_ptr<io::loading::AsyncLoadingStrategy> m_activeAsyncStrategy;
     std::shared_ptr<core::buildplate::BuildPlate> currentPlate_;
 
+    // Transform controls
+    QDoubleSpinBox* spinMoveX_;
+    QDoubleSpinBox* spinMoveY_;
+    QDoubleSpinBox* spinMoveZ_;
+    QDoubleSpinBox* spinRotateX_;
+    QDoubleSpinBox* spinRotateY_;
+    QDoubleSpinBox* spinRotateZ_;
+    QPushButton* btnCenterModel_;
+    QPushButton* btnResetTransform_;
+
+
     // Helper
     void updateMeshInfo();
     void onPlateCreated(std::shared_ptr<core::buildplate::BuildPlate> plate);
+
+    bool exportLayersJSON(const QString& fileName);
+    bool exportLayersBinary(const QString& fileName);
+    bool exportLayersBinaryCompressed(const QString& fileName);
 };

@@ -21,6 +21,11 @@
 #include "QSlider"
 #include <QDebug>
 #include <chrono>
+#include <QByteArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QFile>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -49,19 +54,17 @@ MainWindow::MainWindow(QWidget *parent)
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(5);
     mainLayout->addWidget(rightPanel, 1);
+
     // OpenGL renderer widget
     meshRenderer_ = new rendering::MeshRenderer(this);
     meshRenderer_->setMinimumSize(800, 600);
-    rightLayout->addWidget(meshRenderer_, 1); // stretch = 1
+    rightLayout->addWidget(meshRenderer_, 1);
 
     /* =========================== BUTTON LAYOUTS ===========================*/
 
     // First row: Main controls
-
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->setSpacing(20);
-
-    // Buttons
 
     btnLoad_ = new QPushButton("Load Model", this);
     btnWireframe_ = new QPushButton("Wireframe", this);
@@ -78,7 +81,6 @@ MainWindow::MainWindow(QWidget *parent)
     buttonLayout->addWidget(btnSolid_);
     buttonLayout->addWidget(btnReset_);
 
-    // Cached buttons - YENİ!
     QPushButton* btnCachedSync = new QPushButton("💾 Cached Sync", this);
     QPushButton* btnCachedAsync = new QPushButton("🚀💾 Cached Async", this);
     QPushButton* btnResetCamera = new QPushButton("📷 Reset Camera");
@@ -88,12 +90,11 @@ MainWindow::MainWindow(QWidget *parent)
     buttonLayout->addWidget(btnCachedSync);
     buttonLayout->addWidget(btnCachedAsync);
     buttonLayout->addWidget(btnResetCamera);
-    buttonLayout->addStretch(); // Push buttons to left
+    buttonLayout->addStretch();
 
     rightLayout->addLayout(buttonLayout);
 
     // Second row: Normal Processing + Repair
-
     QHBoxLayout* buttonLayout2 = new QHBoxLayout();
     buttonLayout2->setSpacing(5);
 
@@ -128,11 +129,107 @@ MainWindow::MainWindow(QWidget *parent)
     btnShowLayers_->setStyleSheet("QPushButton { font-weight: bold; background-color: #2196F3; color: white; }");
     btnShowLayers_->setEnabled(false);
 
+    btnExportLayers_ = new QPushButton("💾 Export Layers", this);
+    btnExportLayers_->setMinimumHeight(35);
+    btnExportLayers_->setStyleSheet("QPushButton { font-weight: bold; background-color: #FF9800; color: white; }");
+    btnExportLayers_->setEnabled(false);
+
     buttonLayout3->addWidget(btnSliceMesh_);
     buttonLayout3->addWidget(btnShowLayers_);
+    buttonLayout3->addWidget(btnExportLayers_);
     buttonLayout3->addStretch();
 
     rightLayout->addLayout(buttonLayout3);
+
+    // ===== TRANSFORM CONTROLS ===== ← 6-DOF VERSION!
+    QVBoxLayout* transformBox = new QVBoxLayout();
+
+    // ROW 1: Move X, Y, Z
+    QHBoxLayout* moveLayout = new QHBoxLayout();
+
+    QLabel* labelMoveX = new QLabel("Move X:", this);
+    spinMoveX_ = new QDoubleSpinBox(this);
+    spinMoveX_->setRange(-500.0, 500.0);
+    spinMoveX_->setSingleStep(1.0);
+    spinMoveX_->setValue(0.0);
+    spinMoveX_->setMinimumWidth(70);
+    spinMoveX_->setSuffix(" mm");
+
+    QLabel* labelMoveY = new QLabel("Y:", this);
+    spinMoveY_ = new QDoubleSpinBox(this);
+    spinMoveY_->setRange(-500.0, 500.0);
+    spinMoveY_->setSingleStep(1.0);
+    spinMoveY_->setValue(0.0);
+    spinMoveY_->setMinimumWidth(70);
+    spinMoveY_->setSuffix(" mm");
+
+    QLabel* labelMoveZ = new QLabel("Z:", this);
+    spinMoveZ_ = new QDoubleSpinBox(this);
+    spinMoveZ_->setRange(0.0, 500.0);
+    spinMoveZ_->setSingleStep(1.0);
+    spinMoveZ_->setValue(0.0);
+    spinMoveZ_->setMinimumWidth(70);
+    spinMoveZ_->setSuffix(" mm");
+
+    moveLayout->addWidget(labelMoveX);
+    moveLayout->addWidget(spinMoveX_);
+    moveLayout->addWidget(labelMoveY);
+    moveLayout->addWidget(spinMoveY_);
+    moveLayout->addWidget(labelMoveZ);
+    moveLayout->addWidget(spinMoveZ_);
+    moveLayout->addStretch();
+
+    transformBox->addLayout(moveLayout);
+
+    // ROW 2: Rotate X, Y, Z
+    QHBoxLayout* rotateLayout = new QHBoxLayout();
+
+    QLabel* labelRotateX = new QLabel("Rotate X:", this);
+    spinRotateX_ = new QDoubleSpinBox(this);
+    spinRotateX_->setRange(-180.0, 180.0);
+    spinRotateX_->setSingleStep(5.0);
+    spinRotateX_->setValue(0.0);
+    spinRotateX_->setMinimumWidth(70);
+    spinRotateX_->setSuffix("°");
+
+    QLabel* labelRotateY = new QLabel("Y:", this);
+    spinRotateY_ = new QDoubleSpinBox(this);
+    spinRotateY_->setRange(-180.0, 180.0);
+    spinRotateY_->setSingleStep(5.0);
+    spinRotateY_->setValue(0.0);
+    spinRotateY_->setMinimumWidth(70);
+    spinRotateY_->setSuffix("°");
+
+    QLabel* labelRotateZ = new QLabel("Z:", this);
+    spinRotateZ_ = new QDoubleSpinBox(this);
+    spinRotateZ_->setRange(-180.0, 180.0);
+    spinRotateZ_->setSingleStep(5.0);
+    spinRotateZ_->setValue(0.0);
+    spinRotateZ_->setMinimumWidth(70);
+    spinRotateZ_->setSuffix("°");
+
+    rotateLayout->addWidget(labelRotateX);
+    rotateLayout->addWidget(spinRotateX_);
+    rotateLayout->addWidget(labelRotateY);
+    rotateLayout->addWidget(spinRotateY_);
+    rotateLayout->addWidget(labelRotateZ);
+    rotateLayout->addWidget(spinRotateZ_);
+    rotateLayout->addStretch();
+
+    transformBox->addLayout(rotateLayout);
+
+    // ROW 3: Buttons
+    QHBoxLayout* transformButtons = new QHBoxLayout();
+    btnCenterModel_ = new QPushButton("📍 Center", this);
+    btnResetTransform_ = new QPushButton("🔄 Reset", this);
+
+    transformButtons->addWidget(btnCenterModel_);
+    transformButtons->addWidget(btnResetTransform_);
+    transformButtons->addStretch();
+
+    transformBox->addLayout(transformButtons);
+
+    rightLayout->addLayout(transformBox);
 
     // Fourth row: Layer slider
     QHBoxLayout* sliderLayout = new QHBoxLayout();
@@ -156,71 +253,183 @@ MainWindow::MainWindow(QWidget *parent)
 
     /* =========================== STATUS BAR WITH LABELS ===========================*/
 
-    // Triangle count label
     labelTriangleCount_ = new QLabel("Triangles: 0", this);
     labelTriangleCount_->setStyleSheet("QLabel { padding: 5px; font-weight: bold; }");
     statusBar()->addPermanentWidget(labelTriangleCount_);
 
-    // Vertex count label
     labelVertexCount_ = new QLabel("Vertices: 0", this);
     labelVertexCount_->setStyleSheet("QLabel { padding: 5px; }");
     statusBar()->addPermanentWidget(labelVertexCount_);
 
-    // Layer count label
     labelLayerCount_ = new QLabel("Layers: 0", this);
     labelLayerCount_->setStyleSheet("QLabel { padding: 5px; color: #4CAF50; font-weight: bold; }");
     statusBar()->addPermanentWidget(labelLayerCount_);
 
-    // Status bar
     statusBar()->showMessage("Ready - Load a 3D model to begin");
 
-    // Connect signals
+    // ===== CONNECT SIGNALS =====
     connect(btnLoad_, &QPushButton::clicked, this, &MainWindow::onLoadModel);
     connect(btnWireframe_, &QPushButton::clicked, this, &MainWindow::onWireframe);
     connect(btnSolid_, &QPushButton::clicked, this, &MainWindow::onSolid);
     connect(btnReset_, &QPushButton::clicked, this, &MainWindow::onResetView);
 
-    // Cached signals - YENİ!
     connect(btnCachedSync, &QPushButton::clicked, this, &MainWindow::onLoadModelCachedSync);
     connect(btnCachedAsync, &QPushButton::clicked, this, &MainWindow::onLoadModelCachedAsync);
+    connect(btnResetCamera, &QPushButton::clicked, [this]() {
+        meshRenderer_->resetCamera();
+    });
 
-    // Normal processing signals
     connect(btnRecalcNormals_, &QPushButton::clicked, this, &MainWindow::onRecalculateNormals);
     connect(btnSmoothNormals_, &QPushButton::clicked, this, &MainWindow::onSmoothNormals);
     connect(btnFlipNormals_, &QPushButton::clicked, this, &MainWindow::onFlipNormals);
 
-    // Repair signal
     connect(btnRepairMesh_, &QPushButton::clicked, this, &MainWindow::onRepairMesh);
 
-    // Slice signals
     connect(btnSliceMesh_, &QPushButton::clicked, this, &MainWindow::onSliceMesh);
     connect(btnShowLayers_, &QPushButton::clicked, this, &MainWindow::onShowLayers);
+    connect(btnExportLayers_, &QPushButton::clicked, this, &MainWindow::onExportLayers);
     connect(sliderLayer_, &QSlider::valueChanged, this, &MainWindow::onLayerChanged);
+
+    // Transform signals - 6-DOF!
+    connect(spinMoveX_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &MainWindow::onMoveXChanged);
+    connect(spinMoveY_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &MainWindow::onMoveYChanged);
+    connect(spinMoveZ_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &MainWindow::onMoveZChanged);
+
+    connect(spinRotateX_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &MainWindow::onRotateXChanged);
+    connect(spinRotateY_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &MainWindow::onRotateYChanged);
+    connect(spinRotateZ_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &MainWindow::onRotateZChanged);
+
+    connect(btnCenterModel_, &QPushButton::clicked, this, &MainWindow::onCenterModel);
+    connect(btnResetTransform_, &QPushButton::clicked, this, &MainWindow::onResetTransform);
+
+    // Gizmo signal
+    connect(meshRenderer_, &rendering::MeshRenderer::modelTransformed,
+            this, &MainWindow::onModelTransformedByGizmo);
 
     // Initialize loading strategies
     m_loadingStrategy = std::make_unique<io::loading::SyncLoadingStrategy>();
-
-    // Cached strategies - YENİ!
     m_cachedSyncStrategy = std::make_unique<io::loading::CachedLoadingStrategy>(
         std::make_unique<io::loading::SyncLoadingStrategy>()
         );
-
     m_cachedAsyncStrategy = std::make_unique<io::loading::CachedLoadingStrategy>(
         std::make_unique<io::loading::AsyncLoadingStrategy>()
         );
 
-
-    // Connect plate signal ← YENİ!
     connect(platePanel, &ui::widgets::BuildPlatePanel::plateCreated,
             this, &MainWindow::onPlateCreated);
-
-    connect(btnResetCamera, &QPushButton::clicked, [this]() {
-        meshRenderer_->resetCamera();  // Bu fonksiyonu ekleyeceğiz
-    });
 }
 
 MainWindow::~MainWindow()
 {
+}
+
+// ... (onLoadModel, onWireframe, onSolid, etc. - HİÇ DEĞİŞMEDİ)
+
+void MainWindow::onMoveXChanged(double value)
+{
+    QVector3D pos = meshRenderer_->getModelTranslation();
+    meshRenderer_->setModelTranslation(value, pos.y(), pos.z());  // ← z eklendi!
+}
+
+void MainWindow::onMoveYChanged(double value)
+{
+    QVector3D pos = meshRenderer_->getModelTranslation();
+    meshRenderer_->setModelTranslation(pos.x(), value, pos.z());  // ← z eklendi!
+}
+
+void MainWindow::onMoveZChanged(double value)  // ← YENİ!
+{
+    QVector3D pos = meshRenderer_->getModelTranslation();
+    meshRenderer_->setModelTranslation(pos.x(), pos.y(), value);
+}
+
+void MainWindow::onRotateXChanged(double value)  // ← YENİ!
+{
+    QVector3D rot = meshRenderer_->getModelRotation();
+    meshRenderer_->setModelRotation(value, rot.y(), rot.z());
+}
+
+void MainWindow::onRotateYChanged(double value)  // ← YENİ!
+{
+    QVector3D rot = meshRenderer_->getModelRotation();
+    meshRenderer_->setModelRotation(rot.x(), value, rot.z());
+}
+
+void MainWindow::onRotateZChanged(double value)
+{
+    QVector3D rot = meshRenderer_->getModelRotation();  // ← DEĞİŞTİ!
+    meshRenderer_->setModelRotation(rot.x(), rot.y(), value);  // ← DEĞİŞTİ!
+}
+
+void MainWindow::onResetTransform()
+{
+    meshRenderer_->resetModelTransform();
+
+    spinMoveX_->blockSignals(true);
+    spinMoveY_->blockSignals(true);
+    spinMoveZ_->blockSignals(true);     // ← YENİ!
+    spinRotateX_->blockSignals(true);   // ← YENİ!
+    spinRotateY_->blockSignals(true);   // ← YENİ!
+    spinRotateZ_->blockSignals(true);
+
+    spinMoveX_->setValue(0.0);
+    spinMoveY_->setValue(0.0);
+    spinMoveZ_->setValue(0.0);    // ← YENİ!
+    spinRotateX_->setValue(0.0);  // ← YENİ!
+    spinRotateY_->setValue(0.0);  // ← YENİ!
+    spinRotateZ_->setValue(0.0);
+
+    spinMoveX_->blockSignals(false);
+    spinMoveY_->blockSignals(false);
+    spinMoveZ_->blockSignals(false);     // ← YENİ!
+    spinRotateX_->blockSignals(false);   // ← YENİ!
+    spinRotateY_->blockSignals(false);   // ← YENİ!
+    spinRotateZ_->blockSignals(false);
+}
+
+void MainWindow::onModelTransformedByGizmo(QVector3D translation, QVector3D rotation)  // ← PARAMETRE DEĞİŞTİ!
+{
+    if (spinMoveX_) {
+        spinMoveX_->blockSignals(true);
+        spinMoveX_->setValue(translation.x());
+        spinMoveX_->blockSignals(false);
+    }
+
+    if (spinMoveY_) {
+        spinMoveY_->blockSignals(true);
+        spinMoveY_->setValue(translation.y());
+        spinMoveY_->blockSignals(false);
+    }
+
+    if (spinMoveZ_) {
+        spinMoveZ_->blockSignals(true);
+        spinMoveZ_->setValue(translation.z());
+        spinMoveZ_->blockSignals(false);
+    }
+
+    if (spinRotateX_) {
+        spinRotateX_->blockSignals(true);
+        spinRotateX_->setValue(rotation.x());
+        spinRotateX_->blockSignals(false);
+    }
+
+    if (spinRotateY_) {
+        spinRotateY_->blockSignals(true);
+        spinRotateY_->setValue(rotation.y());
+        spinRotateY_->blockSignals(false);
+    }
+
+    if (spinRotateZ_) {
+        spinRotateZ_->blockSignals(true);
+        spinRotateZ_->setValue(rotation.z());
+        spinRotateZ_->blockSignals(false);
+    }
 }
 
 void MainWindow::onLoadModel()
@@ -237,7 +446,6 @@ void MainWindow::onLoadModel()
     }
 
     qDebug() << "Loading:" << fileName;
-
     statusBar()->showMessage("Loading model...");
 
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -315,7 +523,6 @@ void MainWindow::onLoadModel()
 
 void MainWindow::onLoadModelAsync()
 {
-    // Placeholder - implement if needed
     QMessageBox::information(this, "Info", "Async loading not fully implemented yet. Use cached async!");
 }
 
@@ -514,6 +721,7 @@ void MainWindow::onSliceMesh()
         qDebug() << "   Throughput:" << static_cast<long long>(opsPerSec) << "triangle-checks/sec";
 
         btnShowLayers_->setEnabled(true);
+        btnExportLayers_->setEnabled(true);
         sliderLayer_->setEnabled(true);
         sliderLayer_->setMaximum(slicingResult_.layers.size() - 1);
         sliderLayer_->setValue(0);
@@ -717,11 +925,244 @@ void MainWindow::onPlateCreated(std::shared_ptr<core::buildplate::BuildPlate> pl
     qDebug() << "   Depth:" << plate->depth() << "mm";
     qDebug() << "   Height:" << plate->height() << "mm";
 
-    // Set plate to renderer
     meshRenderer_->setBuildPlate(plate);
 
     statusBar()->showMessage(QString("Build plate created: %1×%2×%3mm")
                                  .arg(plate->width(), 0, 'f', 0)
                                  .arg(plate->depth(), 0, 'f', 0)
                                  .arg(plate->height(), 0, 'f', 1));
+}
+
+void MainWindow::onExportLayers()
+{
+    if (slicingResult_.layers.empty())
+    {
+        QMessageBox::warning(this, "No Layers", "Please slice the mesh first.");
+        return;
+    }
+
+    QString fileName = QFileDialog::getSaveFileName(
+        this,
+        "Export Layer Data",
+        "layers.slyrz",
+        "Compressed Binary (*.slyrz);;"
+        "Binary Layers (*.slyr);;"
+        "JSON Files (*.json);;"
+        "All Files (*)"
+        );
+
+    if (fileName.isEmpty()) return;
+
+    statusBar()->showMessage("Exporting...");
+    auto start = std::chrono::high_resolution_clock::now();
+
+    bool success = false;
+    QString ext = QFileInfo(fileName).suffix().toLower();
+
+    if (ext == "slyrz")
+    {
+        success = exportLayersBinaryCompressed(fileName);
+    }
+    else if (ext == "slyr")
+    {
+        success = exportLayersBinary(fileName);
+    }
+    else
+    {
+        success = exportLayersJSON(fileName);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    if (success)
+    {
+        qint64 size = QFileInfo(fileName).size();
+        QString sizeStr;
+
+        if (size > 1024 * 1024)
+        {
+            sizeStr = QString::number(size / 1024.0 / 1024.0, 'f', 2) + " MB";
+        }
+        else
+        {
+            sizeStr = QString::number(size / 1024.0, 'f', 2) + " KB";
+        }
+
+        statusBar()->showMessage(QString("✅ Exported in %1ms (%2)").arg(ms).arg(sizeStr));
+
+        QMessageBox::information(this, "Export Complete",
+                                 QString("Exported %1 layers\nSize: %2\nTime: %3 ms")
+                                     .arg(slicingResult_.layers.size())
+                                     .arg(sizeStr)
+                                     .arg(ms));
+    }
+    else
+    {
+        QMessageBox::critical(this, "Export Failed", "Failed to write file.");
+    }
+}
+
+bool MainWindow::exportLayersJSON(const QString& fileName)
+{
+    QJsonObject root;
+
+    root["total_layers"] = static_cast<int>(slicingResult_.layers.size());
+    root["total_segments"] = slicingResult_.totalSegments;
+    root["total_height"] = slicingResult_.totalHeight;
+    root["layer_height"] = 0.03f;
+
+    QJsonObject layersObject;
+
+    for (size_t i = 0; i < slicingResult_.layers.size(); ++i)
+    {
+        const auto& layer = slicingResult_.layers[i];
+        QString zKey = QString::number(layer.zHeight(), 'f', 2);
+        QJsonArray segmentsArray;
+
+        for (const auto& segment : layer.segments())
+        {
+            QJsonArray seg;
+            seg.append(segment.start.x);
+            seg.append(segment.start.y);
+            seg.append(segment.end.x);
+            seg.append(segment.end.y);
+            segmentsArray.append(seg);
+        }
+
+        layersObject[zKey] = segmentsArray;
+    }
+
+    root["layers"] = layersObject;
+
+    QJsonDocument doc(root);
+    QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly))
+    {
+        return false;
+    }
+
+    file.write(jsonData);
+    file.close();
+
+    qint64 fileSize = QFileInfo(fileName).size();
+    qDebug() << "✅ Exported" << slicingResult_.layers.size() << "layers";
+    qDebug() << "   File size:" << (fileSize / 1024.0 / 1024.0) << "MB";
+
+    return true;
+}
+
+bool MainWindow::exportLayersBinary(const QString& fileName)
+{
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly))
+    {
+        return false;
+    }
+
+    QDataStream out(&file);
+    out.setByteOrder(QDataStream::LittleEndian);
+    out.setFloatingPointPrecision(QDataStream::SinglePrecision);
+
+    out.writeRawData("SLYR", 4);
+    out << (quint32)1;
+    out << (float)0.03f;
+    out << (quint32)slicingResult_.layers.size();
+    out << (quint32)slicingResult_.totalSegments;
+    out << (float)slicingResult_.totalHeight;
+
+    for (const auto& layer : slicingResult_.layers)
+    {
+        out << (float)layer.zHeight();
+        out << (quint32)layer.segmentCount();
+
+        for (const auto& segment : layer.segments())
+        {
+            out << (float)segment.start.x;
+            out << (float)segment.start.y;
+            out << (float)segment.end.x;
+            out << (float)segment.end.y;
+        }
+    }
+
+    file.close();
+
+    qint64 fileSize = QFileInfo(fileName).size();
+    qDebug() << "✅ Binary export:" << (fileSize / 1024.0 / 1024.0) << "MB";
+
+    return true;
+}
+
+bool MainWindow::exportLayersBinaryCompressed(const QString& fileName)
+{
+    QByteArray binaryData;
+    QDataStream out(&binaryData, QIODevice::WriteOnly);
+    out.setByteOrder(QDataStream::LittleEndian);
+    out.setFloatingPointPrecision(QDataStream::SinglePrecision);
+
+    out.writeRawData("SLYR", 4);
+    out << (quint32)1;
+    out << (float)0.03f;
+    out << (quint32)slicingResult_.layers.size();
+    out << (quint32)slicingResult_.totalSegments;
+    out << (float)slicingResult_.totalHeight;
+
+    for (const auto& layer : slicingResult_.layers)
+    {
+        out << (float)layer.zHeight();
+        out << (quint32)layer.segmentCount();
+
+        for (const auto& segment : layer.segments())
+        {
+            out << (float)segment.start.x;
+            out << (float)segment.start.y;
+            out << (float)segment.end.x;
+            out << (float)segment.end.y;
+        }
+    }
+
+    qDebug() << "📊 Uncompressed:" << (binaryData.size() / 1024.0 / 1024.0) << "MB";
+
+    QByteArray compressed = qCompress(binaryData, 9);
+
+    qDebug() << "📦 Compressed:" << (compressed.size() / 1024.0 / 1024.0) << "MB";
+    qDebug() << "✅ Ratio:" << (100.0 * compressed.size() / binaryData.size()) << "%";
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly))
+    {
+        return false;
+    }
+
+    file.write(compressed);
+    file.close();
+
+    return true;
+}
+
+void MainWindow::onCenterModel()
+{
+    if (currentMesh_.triangles.empty())
+    {
+        qDebug() << "⚠️ No mesh to center!";
+        return;
+    }
+
+    meshRenderer_->centerModel(currentMesh_);
+
+    QVector3D pos = meshRenderer_->getModelTranslation();
+
+    spinMoveX_->blockSignals(true);
+    spinMoveY_->blockSignals(true);
+    spinMoveZ_->blockSignals(true);
+
+    spinMoveX_->setValue(pos.x());
+    spinMoveY_->setValue(pos.y());
+    spinMoveZ_->setValue(pos.z());
+
+    spinMoveX_->blockSignals(false);
+    spinMoveY_->blockSignals(false);
+    spinMoveZ_->blockSignals(false);
 }

@@ -2,6 +2,7 @@
 add_library(rendering_lib STATIC
     Camera.cpp
     MeshRenderer.cpp
+    TransformGizmo.cpp
 )
 
 target_link_libraries(rendering_lib

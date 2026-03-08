@@ -9,6 +9,9 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include "core/buildplate/BuildPlate.h"
+#include <cfloat>  // ← EKLE! (FLT_MAX için)
+#include "core/mesh/mesh.h"  // ← EKLE! (Mesh için)
+#include "TransformGizmo.h"
 
 #include "core/mesh/mesh.h"
 #include "core/slicing/Layer.h"  // ← YENİ!
@@ -44,6 +47,22 @@ public:
     void clearBuildPlate();
     void resetCamera();
 
+
+    // Transform controls ← YENİ!
+    void setModelTranslation(float x, float y, float z);
+    void setModelRotation(float x, float y, float z);
+    void resetModelTransform();
+    void centerModel(const core::mesh::Mesh& mesh);
+    QVector3D getModelTranslation() const { return modelTranslation_; }
+    QVector3D getModelRotation() const { return modelRotation_; }
+
+    // Selection & Gizmo ← EKLE!
+    void setMeshSelected(bool selected);
+    bool isMeshSelected() const { return meshSelected_; }
+
+signals:
+    void modelTransformed(QVector3D translation, QVector3D rotation);
+
 protected:
     void initializeGL() override;
     void resizeGL(int w, int h) override;
@@ -53,6 +72,9 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
+    void paintEvent(QPaintEvent* event) override;
+
+
 
 private:
     // Mesh OpenGL resources
@@ -96,6 +118,18 @@ private:
     // Rendering helpers - YENİ!
     void renderBuildPlate();
     void setupBuildPlateBuffers();
+
+    // Model transform
+    QVector3D modelTranslation_;
+    QVector3D modelRotation_;
+
+    // Gizmo ← EKLE!
+    TransformGizmo gizmo_;
+    bool meshSelected_;
+    GizmoAxis activeGizmoAxis_;
+    bool isDraggingGizmo_;
+    bool isRotatingCamera_;
+
 };
 
 } // namespace rendering

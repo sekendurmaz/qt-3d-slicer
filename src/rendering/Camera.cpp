@@ -5,7 +5,7 @@ namespace rendering {
 
 Camera::Camera()
     : target_(0, 0, 0)
-    , distance_(100.0f)
+    , distance_(50.0f)
     , angleX_(45.0f)
     , angleY_(30.0f)
 {
