@@ -73,6 +73,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     void paintEvent(QPaintEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
 
 
 
@@ -89,6 +90,7 @@ private:
     QOpenGLVertexArrayObject layerVao_;
     QOpenGLBuffer layerVbo_;
     QOpenGLShaderProgram* layerShaderProgram_ = nullptr;
+     QOpenGLShaderProgram* plateShaderProgram_ = nullptr;
 
     std::vector<float> layerVertices_;
     int layerVertexCount_ = 0;
@@ -110,6 +112,7 @@ private:
     void buildLayerBuffer();  // ← YENİ!
     void createShaders();
     void createLayerShaders();  // ← YENİ!
+    void createPlateShaders();
 
     std::shared_ptr<core::buildplate::BuildPlate> buildPlate_;
     QOpenGLBuffer buildPlateVBO_;
@@ -129,6 +132,8 @@ private:
     GizmoAxis activeGizmoAxis_;
     bool isDraggingGizmo_;
     bool isRotatingCamera_;
+
+
 
 };
 

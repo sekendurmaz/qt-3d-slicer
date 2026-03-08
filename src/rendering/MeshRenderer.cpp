@@ -28,9 +28,10 @@ MeshRenderer::~MeshRenderer()
 {
     makeCurrent();
     vbo_.destroy();
-    layerVbo_.destroy();  // ← YENİ!
+    layerVbo_.destroy();
     delete shaderProgram_;
-    delete layerShaderProgram_;  // ← YENİ!
+    delete layerShaderProgram_;
+    delete plateShaderProgram_;
     doneCurrent();
 }
 
@@ -81,7 +82,7 @@ void MeshRenderer::initializeGL()
 
     buildPlateVAO_.create();
     buildPlateVBO_.create();
-
+    createPlateShaders();   // ← YENİ! Plate shader
     gizmo_.initialize();
     gizmo_.setSize(20.0f);
     gizmo_.setVisible(false);
@@ -318,7 +319,7 @@ void MeshRenderer::createShaders()
 
             float diff = max(dot(norm, lightDirection), 0.0);
 
-            vec3 baseColor = vec3(0.3, 0.6, 0.9);  // Nice blue
+            vec3 baseColor = vec3(1.0, 0.5, 0.0);  // 🟠 TURUNCU MESH
             vec3 ambient = 0.3 * baseColor;
             vec3 diffuse = diff * baseColor;
 
@@ -597,7 +598,7 @@ void MeshRenderer::renderBuildPlate()
         return;
     }
 
-    if (!shaderProgram_->bind())
+    if (!plateShaderProgram_->bind())
     {
         return;
     }
@@ -609,11 +610,11 @@ void MeshRenderer::renderBuildPlate()
 
     float aspect = width() / static_cast<float>(height());
 
-    shaderProgram_->setUniformValue("model", model);  // ← Identity matrix
-    shaderProgram_->setUniformValue("view", camera_.viewMatrix());
-    shaderProgram_->setUniformValue("projection", camera_.projectionMatrix(aspect));
-    shaderProgram_->setUniformValue("meshColor", QVector3D(0.3f, 0.3f, 0.3f));  // ← Gri yap (yeşil kafa karıştırıcı)
-
+    // SADECE plateShaderProgram_ KULLAN! ← DOĞRU!
+    plateShaderProgram_->setUniformValue("model", model);
+    plateShaderProgram_->setUniformValue("view", camera_.viewMatrix());
+    plateShaderProgram_->setUniformValue("projection", camera_.projectionMatrix(aspect));
+    plateShaderProgram_->setUniformValue("plateColor", QVector3D(0.15f, 0.15f, 0.15f));  // ⬛ KOYU GRİ
     // Draw grid
     buildPlateVAO_.bind();
     glLineWidth(1.5f);  // ← Biraz ince
@@ -933,4 +934,86 @@ void MeshRenderer::paintEvent(QPaintEvent* event)
         painter.drawText(center + QPointF(-5, -15), "XY");
     }
 }
+
+void MeshRenderer::createPlateShaders()
+{
+    plateShaderProgram_ = new QOpenGLShaderProgram(this);
+
+    // Vertex shader (basit, lighting yok)
+    const char* vertexShaderSource = R"(
+        #version 330 core
+        layout(location = 0) in vec3 position;
+
+        uniform mat4 model;
+        uniform mat4 view;
+        uniform mat4 projection;
+
+        void main()
+        {
+            gl_Position = projection * view * model * vec4(position, 1.0);
+        }
+    )";
+
+    // Fragment shader (düz renk)
+    const char* fragmentShaderSource = R"(
+        #version 330 core
+        uniform vec3 plateColor;
+        out vec4 FragColor;
+
+        void main()
+        {
+            FragColor = vec4(plateColor, 1.0);
+        }
+    )";
+
+    plateShaderProgram_->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource);
+    plateShaderProgram_->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource);
+    plateShaderProgram_->link();
+
+    qDebug() << "✅ Plate shader created";
+}
+
+void MeshRenderer::keyPressEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_Escape)
+    {
+        // ESC - Gizmo'yu kapat
+        setMeshSelected(false);
+        qDebug() << "⌨️ ESC - Gizmo hidden";
+        update();
+        return;
+    }
+
+    if (event->key() == Qt::Key_R)
+    {
+        // R - Kamerayı sıfırla
+        resetCamera();
+        qDebug() << "⌨️ R - Camera reset";
+        return;
+    }
+
+    if (event->key() == Qt::Key_C)
+    {
+        // C - Mesh'i merkezle
+        if (vertexCount_ > 0)
+        {
+            // centerModel() çağrılabilir (mesh referansı gerekli)
+            qDebug() << "⌨️ C - Center model";
+        }
+        return;
+    }
+
+    if (event->key() == Qt::Key_Delete)
+    {
+        // Delete - Transform'u sıfırla
+        resetModelTransform();
+        qDebug() << "⌨️ Delete - Transform reset";
+        return;
+    }
+
+    QOpenGLWidget::keyPressEvent(event);
+}
+
+
+
 } // namespace rendering
