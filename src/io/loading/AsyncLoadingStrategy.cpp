@@ -2,7 +2,9 @@
 #include "io/models/common/ModelFactory.h"
 #include <stdexcept>
 #include <iostream>  // ← DEĞİŞTİ!
+#include <chrono>  // ← EKLE!
 
+using namespace std::chrono;  // ← EKLE!
 namespace io {
 namespace loading {
 
